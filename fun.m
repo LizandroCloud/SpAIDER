@@ -2,7 +2,7 @@ function [ f, t_ult, t_out, y, ti, df ] = fun( x0, ns, ts, ws, ne, n_s,n_c,w_fro
  
 % global reg;
 % global est;
-global DEBUG;  % for dassl solver...
+global DEBUG;  % for dassl solver....
 % global t_ult;
 
 %% Parameters
