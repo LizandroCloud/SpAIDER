@@ -1,0 +1,17 @@
+% Create some arbitrary graphics
+% f1 = figure; peaks; f2 = figure; membrane;
+f1 = figure; peaks;
+set (f1,'Visible','off')
+
+% Connect to Excel, make it visible and add a worksheet
+iter1 = actxserver('Excel.Application'); set(iter1,'Visible',1);
+iter1.Workbooks.Add(1); xls = xl.ActiveSheet;
+
+% Paste in the MATLAB figures
+print(f1, '-dbitmap'); xls.Range('E3').PasteSpecial;
+print(f2, '-dbitmap'); xls.Range('I3').PasteSpecial;
+
+xls.Shapes.Item(1).PictureFormat.CropLeft  = 30;
+xls.Shapes.Item(1).PictureFormat.CropRight  = 30;
+xls.Shapes.Item(1).Height  = 200;
+xls.Shapes.Item(1).Left = xls.Range('E3').Left;
