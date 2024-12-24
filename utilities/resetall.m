@@ -1,0 +1,13 @@
+clc;
+clear all;
+close all;
+delete *.asv;
+diary off;
+delete *.txt1;
+delete *.fig;
+delete *.eps;
+delete *.png;
+delete *.xlsx;
+delete *.emf;
+delete *.mat;
+delete *.xls;

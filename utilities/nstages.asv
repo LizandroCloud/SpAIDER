@@ -1,0 +1,5 @@
+function [ugx] = f_ug(i,ks,ug)
+ugx = cell2mat(ne(i));
+ks=i;
+i=ks^2;
+end

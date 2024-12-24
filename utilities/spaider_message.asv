@@ -1,0 +1,18 @@
+        function [mess] = spaider_message(adv,status)
+                ast = repmat('                   *', length(adv),1);
+                disp('                   ******************************************************************************');
+                disp('                   *                              Warning:                                      *');
+                disp('                   *                                                                            *');
+                for kj = 1:2;
+                    cminus = (76-length(adv{kj'}));
+                    message = strcat(ast(kj,:) , adv{kj'}); 
+                    disp([message blanks(cminus) '*']); 
+                end
+                disp('                   *                                                                            *');   
+                disp('                   ******************************************************************************'); 
+                mess=1;
+                if strcmp(status)
+                    case{'error'}
+                        break
+                end
+        end

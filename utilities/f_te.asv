@@ -1,0 +1,8 @@
+function [to tf dtt]  = f_dt(ti,ks,disc);
+to = ti(ks);
+tf = ti(ks+1);
+
+tex = (te(i,:));
+tex_o = te(i,ks);
+tex_1 = te(i,ks+1);
+end

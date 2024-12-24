@@ -1,0 +1,11 @@
+function res = Blips_fix(w0,C,L,maxlev)
+
+    for ih=2:(length(C))
+        if C(ih-1)<norm(C(2:end))*0.90
+           C(ih-1)=0.0;
+        end
+    end
+            
+res=Pgrad_tr(Pgrad_tr~=0);
+
+end
