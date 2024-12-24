@@ -1,0 +1,12 @@
+% Set up shared variables with OUTFUN
+history.x = [];
+history.fval = [];
+searchdir = [];
+ 
+% call optimization
+x0 = [-1 1];
+options = optimset('outputfcn',@outfun,'display','iter',... 
+'largescale','off');
+xsol = fmincon(@objfun,x0,[],[],[],[],[],[],@confun,options);
+ 
+ 
