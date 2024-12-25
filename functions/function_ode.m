@@ -260,7 +260,7 @@ z0 = [ x0 ];
                  
 %                     [tspan,zs] = ode15i('daesys',[ti(ks):(ti(ks+1)-ti(ks))/50:ti(ks+1)],z0,ydot0);
 %                  if length(tspan)<10
-%                      warning('Falha na Integração. Gerando novas condições iniciais consistentes');
+%                      warning('Falha na Integraï¿½ï¿½o. Gerando novas condiï¿½ï¿½es iniciais consistentes');
 %                      A='LIT_004.SPinput -'; 
 %                      B=num2str(UX);
 %                      C=[A,B];
@@ -384,7 +384,7 @@ else
   end
   zdf = 0*zdf;
   % z0 = [ x0' ; zdf ];
-  z0 = [ x0 ; zdf ];
+  z0 = [ x0' ; zdf ];
   z0x = z0;
   if frozen==0
 %     check = 2:length(ts);
