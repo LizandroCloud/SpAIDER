@@ -1,0 +1,58 @@
+%Dinamica linear via solucao analitica degrau usando jacobiana variável
+function s = p_sens(t_out,s0,ws,ks,ts,reg,ns,ne,te,n_s,n_c,ns_a,ts_frozen,points,tal,est,yi,utarg,tstarg,nstarg,dFdx,dFdu)
+% global modelo_dFdx modelo_dFdu
+
+kspan=size(t_out',1);
+
+[T,D]=eig(dFdx); B=T\dFdu;
+% B(:,1)=B(:,1)*1e3;
+for k=1:kspan
+    for j=1:n_s
+        if real(D(j,j))>=-1e-6
+            H(j,:,k)=(t_out(k)-t_out(1))*B(j,:);
+            Phi(j,:,k)=zeros(1,n_s); Phi(j,j,k)=1;
+        else
+            H(j,:,k)=(-D(j,j))\(1-exp(D(j,j)*(t_out(k)-t_out(1))))*B(j,:);
+            Phi(j,:,k)=zeros(1,n_s); Phi(j,j,k)=exp(D(j,j)*(t_out(k)-t_out(1)));
+        end
+    end
+    St(:,:,k)=real(T*H(:,:,k));
+    Et(:,:,k)=real(T*Phi(:,:,k)/T);
+end
+
+%initialize sensitivity stock vector
+s=[];
+for j=1:n_c
+    s=[s,zeros(1,n_s*ns_a(j))];
+end
+
+%Sensitivity matrices allocation in output [dx]
+j0=0;
+for j=1:n_c
+	for is = 1:ns_a(j)
+        id=zeros(ns_a(j),1); id(is)=1;
+        idt=max(find(ts(is)>=t_out));
+        if is<ns_a(j)
+            idtp=max(find(ts(is+1)>=t_out));
+        else
+            idtp=length(t_out);
+        end
+        for k=idt:idtp
+            uws=1;
+            s(k,n_s*(is-1)+1+j0:n_s*(is-1)+n_s+j0)=...
+                s0(1,n_s*(is-1)+1+j0:n_s*(is-1)+n_s+j0) + (St(:,j,k-idt+1)*uws)';
+        end
+        for k=idtp:kspan
+            s(k,n_s*(is-1)+1+j0:n_s*(is-1)+n_s+j0)=...
+                (Et(:,:,k-idtp+1)*s(idtp,n_s*(is-1)+1+j0:n_s*(is-1)+n_s+j0)')';
+        end
+        if idt>1
+            for k=1:idt-1
+                s(k,n_s*(is-1)+1+j0:n_s*(is-1)+n_s+j0)=...
+                    s0(1,n_s*(is-1)+1+j0:n_s*(is-1)+n_s+j0);
+            end
+        end
+	end 
+    j0=j0+ns_a(j)*n_s;
+end
+end
