@@ -1,1 +1,0 @@
-X = global_mac();
