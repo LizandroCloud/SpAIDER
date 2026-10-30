@@ -1,65 +1,54 @@
 % ************************************************************************
-% DSc. Lizandro de Sousa Santos 
-%%
-% 
-%   for x = 1:10
-%       disp(x)
-%   end
-% 
-% email: lizandrossantos@gmail.com or lizandro@peq.coppe.ufrj.br
-% Universidade Federal Fluminense
-
+% Author:      Lizandro de Sousa Santos
+% Email:       lizandrosousa@id.uff.br
+% Institution: Universidade Federal Fluminense
+%
 % ************************************************************************
 %                              #Case study 1.A#
-% Problem:SemiBacth Ishothermal CSTR Reactor  
-% References:  Srinivasan et al. (2003a) 
+% Problem: Semi-Batch Isothermal CSTR Reactor
+% References:  Srinivasan et al. (2003a)
 %              Schlegel et al. (2005)
 %
 % ************************************************************************
+if exist('startup', 'file') ~= 2
+    error('problem_1A:startup', 'startup.m not found on the MATLAB path; run from the SpAIDER root.');
+end
 startup
-% distcomp.feature( 'LocalUseMpiexec', false )
 %--------------------------------------------------------------------------
 % Optimization options: see help fmincon...
-optNLP = optimset( 'Algorithm', 'interior-point', 'GradObj', 'on', 'GradConstr', 'on',...
- 'DerivativeCheck', 'off', 'Display', 'iter', 'TolX', 10^(-10),...
- 'TolFun', 10^(-10), 'TolCon', 10^(-3), 'MaxFunEval', 15000000, 'MaxIter', 10e10);
-% Ode options: see help ode45...
+optNLP = optimoptions( 'fmincon', 'Algorithm', 'sqp', ...
+ 'SpecifyObjectiveGradient', true, 'SpecifyConstraintGradient', true, ...
+ 'CheckGradients', false, 'Display', 'iter', 'StepTolerance', 10^(-10),...
+ 'OptimalityTolerance', 10^(-10), 'ConstraintTolerance', 10^(-3), ...
+ 'MaxFunctionEvaluations', 1e7, 'MaxIterations', 1e5);
+% ConstraintTolerance is looser than the other tolerances on purpose (assumed:
+% fref was obtained with it); tighten it only together with a new fref.
 
-% ode parameters
+% ode parameters: see help odeset...
 %--------------------------------------------------------------------------
 optODE = odeset( 'RelTol', 1e-9, 'AbsTol', 1e-9);
 
 %--------------------------------------------------------------------------
 % method of solution
-in_SPAIDER.problem.method = 'single shooting'; 
-                          % 'multiple shooting'  (advisory to be paralell if EMSO)  
-                          % 'simultaneous'
-                          % 'indirect'
-in_SPAIDER.problem.type = 'optimal control';    
-                        % 'dynamic parameter estimation'
-                       
-                        % 'static optimization'
-in_SPAIDER.problem.analitic_derivarive = 'sensitivy analisys';   %(If optimset.GradObj is on and/or optimset.GradConstr is on)
-% in_SPAIDER.problem.analitic_derivarive = 'automatic diferentiation';
-                                        % 'numeric';
+in_SPAIDER.problem.method = 'single shooting';
+                          % 'multiple shooting' (advisable in parallel if EMSO) | 'simultaneous' | 'indirect'
+in_SPAIDER.problem.type = 'optimal control';
+                          % 'dynamic parameter estimation' | 'static optimization'
+in_SPAIDER.problem.analitic_derivarive = 'sensitivy analisys'; % used if SpecifyObjectiveGradient and/or SpecifyConstraintGradient is true
+                          % 'automatic diferentiation' | 'numeric'
 in_SPAIDER.problem.algorithm = 'serial';
-%                              'parallel'    % suggered for only for multiple shooting and external routines (as EMSO and Hysys)    
-in_SPAIDER.problem.tfree = 0;  % if is free time or fixed time
-   in_SPAIDER.problem.interpolation =  'stage';  % interpolation of control profile
-%   in_SPAIDER.problem.interpolation =  'spline' ;
-%    in_SPAIDER.problem.interpolation =  'linear';
-% in_SPAIDER.problem.interpolation =  'nearest';
-% in_SPAIDER.problem.interpolation =  'stage';
-%   in_SPAIDER.problem.interpolation =  'reg_const';
-                                  
+                          % 'parallel' (suggested only for multiple shooting and external routines such as EMSO and Hysys)
+in_SPAIDER.problem.tfree = 0;  % 1 for free final time, 0 for fixed final time
+in_SPAIDER.problem.interpolation = 'stage';  % interpolation of control profile
+                          % 'spline' | 'linear' | 'nearest' | 'stage' | 'reg_const'
 %--------------------------------------------------------------------------
 
 %--------------------------------------------------------------------------
 % convergence options
 in_SPAIDER.conv.f_tol = 1e-5; % tolerance for adaptation algorithm;
 in_SPAIDER.conv.f_tol2 = 10;  % second order tolerance for adaptation algorithm;
-in_SPAIDER.conv.t_ref = 3072.36967484694; % time for CPU reference;
-in_SPAIDER.conv.fref = 0.431721; % reference objective functional;
+in_SPAIDER.conv.t_ref = 3072.36967484694; % time for CPU reference (s); TODO: record machine/date of this measurement
+in_SPAIDER.conv.fref = 0.431721; % reference objective functional; TODO: record source (paper or own run)
 in_SPAIDER.conv.utarg =0; % u as target functional 
 %--------------------------------------------------------------------------
 
@@ -97,20 +86,17 @@ in_SPAIDER.wavelets.norm_threshold  = 0.8; % norm threshold
 in_SPAIDER.wavelets.fix_threshold  = 1.0e-5; % fixed threshold
 in_SPAIDER.wavelets.max_refinement = 128; % constraints for number of stages (mudar para max_discret
 in_SPAIDER.wavelets.refinement_position = 0.44; % [0.1 0.9] location of refinement in each stage 
-in_SPAIDER.wavelets.delt = 1.0e-55*0.1;
+in_SPAIDER.wavelets.delt = 1.0e-56; % offset added to the threshold in spaider_main (negligible)
 in_SPAIDER.wavelets.rel = 'on';
 %--------------------------------------------------------------------------
 
 try
-[out_SPAIDER] = spaider_main(in_SPAIDER,optNLP,optODE,SPAIDER)
+    [out_SPAIDER] = spaider_main(in_SPAIDER,optNLP,optODE,SPAIDER);
 catch ME
-    
-        idSegLast = regexp(ME.identifier, '(?<=:)\w+$', 'match'); 
-        
-         if strcmp(idSegLast,'') 
-                 [out_SPAIDER] = spaider_main(in_SPAIDER,optNLP,optODE)
-         else
-                  [out_SPAIDER] = spaider_main(in_SPAIDER,optNLP,optODE)
-         end
-   
+    % fallback only when the optional SPAIDER argument is missing
+    if strcmp(ME.identifier, 'MATLAB:UndefinedFunction') && contains(ME.message, 'SPAIDER')
+        [out_SPAIDER] = spaider_main(in_SPAIDER,optNLP,optODE);
+    else
+        rethrow(ME);
+    end
 end
