@@ -1,0 +1,38 @@
+# MATLAB autosave / editor
+*.asv
+*.m~
+*~
+
+# Resultados e arquivos gerados
+results/
+*.txt1
+*.fig
+*.mat
+*.png
+*.eps
+*.emf
+*.log
+
+# Binários compilados (mex) — gerar localmente
+*.mexw32
+*.mexw64
+*.mexa64
+*.mexmaci64
+!dasslc/*.mexw32
+!dasslc/*.mexw64
+*.obj
+*.o
+
+# Bibliotecas de terceiros (instalar separadamente)
+casadi*/
+sundials*/
+sundialsTB/
+ipopt/
+baron/
+cobra/
+*.zip
+
+# Sistema
+Thumbs.db
+desktop.ini
+.DS_Store
