@@ -14,7 +14,7 @@ C_x(1:length(C)) = C(1:length(C));
    end  
  
  subplot(2,1,1);
- 
+ in_SPAIDER.problem.interpolation = 'stage';
  if strcmp(in_SPAIDER.problem.interpolation,'stage' )
     stairs(tspan*talf,u_p,'k'); hold on;
 %     maxlev = wmaxlev(length(u_p),'db1');
@@ -23,7 +23,7 @@ C_x(1:length(C)) = C(1:length(C));
 %     stairs(tspan*talf,w01,'--'); hold on;
  else
     for i=1:length(tspan)
-        yi = interp1(ts_x,[wopt],'nearest', 'pp');
+        yi = interp1(ts(ic,1:ns_a(ic)),[wopt(ic,1:ns_a(ic)) ],'nearest', 'pp');
         u(i)= ppval(yi,tspan(i));
     end 
     plot(tspan*talf,u,'--'); hold on;

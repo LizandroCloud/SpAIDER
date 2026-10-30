@@ -1,0 +1,161 @@
+using "streams";
+using "Corrente";
+
+#using "misturador";
+
+Model TanqueFinal
+
+	PARAMETERS
+
+
+	A as area (Brief="Tank area", Default=8);
+	tal       as Real; 
+	
+	VARIABLES
+	
+	Level as length (Brief="Tank level",Default=0.5);
+	V     as Real   (Brief="Volume de produto");
+	m     as Real   (Brief="Massa do produto");
+	Rho   as Real   (Brief="Densidade do produto",Default=826);
+	S     as Real   (Brief="Teor de enxofre do produto");
+	
+	PF_Ra     as Real (Brief="Ponto de Fulgor de cada componente em Rankine", Default=570, Lower=1e-30, Upper=1e30);
+	IPF_inlet as Real (Brief="Indice de Ponto de Fulgor da corrente do misturador", Default=34, Lower=1e-30, Upper=1e15);
+	IPF_T     as Real (Brief="Indice de Ponto de Fulgor do tanque", Default=34, Lower=1e-30, Upper=1e30);
+	PF_Ra_T   as Real (Brief="Ponto de Fulgor do tanque em Rankine", Default=570, Lower=1e-30, Upper=1e30);
+	PF_T      as Real (Brief="Ponto de Fulgor do tanque", Default=43.5, Lower=1e-30, Upper=1e30);
+
+	IMu40_inlet  as Real (Brief="Indice de Viscosidade Cinematica a 40ºC da corrente do misturador",Default=0.09, Lower=1e-30, Upper=1e30);
+    IMu40_T    	 as Real (Brief="Indice de Viscosidade Cinematica a 40ºC do tanque", Default=0.09, Lower=1e-30, Upper=1e30);
+	Mu40_T       as Real (Brief="Viscosidade a 40ºC", Default=2, Lower=1e-30, Upper=1e30);
+	
+	IT50R_inlet  as Real (Brief="Indice de Temp. 50% Recuperados da corrente do misturador", Default=0.9, Lower=1e-30, Upper=1e30);
+    IT50R_T    	 as Real (Brief="Indice de Temp. 50% Recuperados do tanque", Default=0.9, Lower=1e-30, Upper=1e30);
+    T50R_T	     as Real (Brief="Temp. 50% Recuperados do tanque", Default=256.2, Lower=-1e-30, Upper=1e30);
+	
+	IT85R_inlet  as Real (Brief="Indice de Temp. 85% Recuperados da corrente do misturador", Default=3.1, Lower=1e-30, Upper=1e30);
+    IT85R_T    	 as Real (Brief="Indice de Temp. 85% Recuperados do tanque", Default=3.1, Lower=1e-30, Upper=1e30);
+    T85R_T	     as Real (Brief="Temp. 85% Recuperados do tanque", Default=333.2, Lower=-1e-30, Upper=1e30);
+	
+	IT90R_inlet  as Real (Brief="Indice de Temp. 90% Recuperados da corrente do misturador", Default=3.28, Lower=1e-30, Upper=1e30);
+    IT90R_T    	 as Real (Brief="Indice de Temp. 90% Recuperados do tanque", Default=3.28, Lower=1e-30, Upper=1e30);
+    T90R_T	     as Real (Brief="Temp. 90% Recuperados do tanque", Default=335.6, Lower=-1e-30, Upper=1e30);
+
+	IPA_inlet    as Real (Brief="Indice de Ponto de Anilina da corrente do misturador", Default=0.23, Lower=1e-30, Upper=1e30);
+	IPA_T        as Real (Brief="Indice de Ponto de Anilina do tanque", Default=0.23, Lower=1e-30, Upper=1e30);
+	PA_T         as Real (Brief="Ponto de Anilina do tanque", Default=55.5, Lower=1e-30, Upper=1e30);
+	
+	z			 as Real (Brief="Variavel Auxiliar", Default=57, Lower=-1e30, Upper=1e30);
+	
+	nCET_T       as Real (Brief="Número de cetano do tanque", Default=57, Lower=1e-30, Upper=1e30);
+	
+	PE_F   	  as Real (Brief="Ponto de Entupimento de cada componente em Fahrenheit", Default=39.91, Lower=-1e30, Upper=1e30);
+    IPE_inlet as Real (Brief="Indice de Ponto de Entupimento da corrente do misturador", Default=4, Lower=1e-30, Upper=1e30);
+	IPE_T     as Real (Brief="Indice de Ponto de Entupimento do tanque", Default=4, Lower=1e-30, Upper=1e30);
+	PE_F_T    as Real (Brief="Ponto de Entupimento do tanque em Fahrenheit", Default=39.91, Lower=-1e30, Upper=1e30);
+    PE_T      as Real (Brief="Ponto de Entupimento do tanque", Default=4.4, Lower=-1e30, Upper=1e30);
+	
+	
+in  inlet as Corrente;
+
+
+	EQUATIONS
+
+#-------------------------------------------------------------------------------------------------	
+
+	"Nível do tanque"
+	
+	diff(Level) = inlet.F/A * tal;
+	
+	V = Level * A *'1/m^3';
+
+#-------------------------------------------------------------------------------------------------
+	
+	"Densidade do produto"
+	
+	diff(m) = inlet.Rho*inlet.F* '1/m^3'*tal;
+	
+	Rho*V = m ; 
+	
+
+	
+#--------------------------------------------------------------------------------------------------
+	
+	"Teor de Enxofre do produto"
+	
+	diff(S*Rho*V) = inlet.F*'1/m^3'* inlet.Rho*inlet.S*tal;
+	
+
+#--------------------------------------------------------------------------------------------------
+
+	"Ponto de Fulgor do produto"
+	
+	PF_Ra = 1.8 * (inlet.PF + 273.15);
+	
+	IPF_inlet = 10000. * ((PF_Ra / 459.67)^2) ^ (-1./(2*0.038));
+	
+	diff(IPF_T*V) = inlet.F*'1/m^3'*IPF_inlet* tal;
+	
+	PF_Ra_T = 459.67 * ((IPF_T / 10000.)^2) ^ (-0.038/2);
+	
+	PF_T = PF_Ra_T / 1.8 - 273.15;
+	
+	
+#----------------------------------------------------------------------------------------------------
+	
+	"Viscosidade Cinematica a 40ºC"
+	
+	IMu40_inlet = ln(abs(inlet.Mu40)) / ln(1000. * abs(inlet.Mu40));
+	
+	diff(IMu40_T*V) = inlet.F*'1/m^3'*IMu40_inlet* tal;
+	
+	Mu40_T = 1000. ^ (IMu40_T / (1 - IMu40_T));
+	
+	
+	
+#-----------------------------------------------------------------------------------------------------
+	
+	"Destilacao"
+	
+	IT50R_inlet = ((1.8*inlet.T50R + 32.)/546.1);
+	diff(IT50R_T*V) = inlet.F*'1/m^3'*IT50R_inlet* tal;
+	T50R_T = (546.1 * IT50R_T - 32.) / 1.8;
+	
+	
+	IT85R_inlet = (((1.8*inlet.T85R + 32.)/546.1)^2) ^ (7.8/2);
+	diff(IT85R_T*V) = inlet.F*'1/m^3'*IT85R_inlet* tal;
+	T85R_T = (546.1 * (IT85R_T^2) ^ (1./(2*7.8)) - 32.) / 1.8;
+	
+	IT90R_inlet = (((1.8*inlet.T90R + 32.)/546.1)^2) ^ (7.8/2);
+	diff(IT90R_T*V) = inlet.F*'1/m^3'*IT90R_inlet* tal;
+	T90R_T = (546.1 * (IT90R_T^2) ^ (1./(2*7.8)) - 32.) / 1.8;
+	
+	
+#------------------------------------------------------------------------------------------------------
+	
+	"Numero de cetano com aditivo"
+	
+	IPA_inlet = exp(-0.011 * (1.8 * inlet.PA + 32.));
+	diff(IPA_T*V) = inlet.F*'1/m^3'*IPA_inlet* tal;
+	PA_T = (-ln(abs(IPA_T))/0.011 - 32.) / 1.8;
+	
+	z = (-0.2/0.011) * ln(abs(IPA_T)) - 1000.* 0.01739 * (inlet.Rho/1000.) + 45.354;
+	
+	nCET_T = z;
+
+#--------------------------------------------------------------------------------------------------
+
+	"Ponto de Entupimento"
+	
+	
+	PE_F = 1.8*inlet.PE + 32;
+	
+	ln(abs(IPE_inlet)) = 0.035 * PE_F;
+	
+	diff(IPE_T*V) = inlet.F*'1/m^3'*IPE_inlet* tal;
+	
+	exp(0.035*PE_F_T) = IPE_T;
+
+	PE_T = (PE_F_T - 32) / 1.8;
+
+end

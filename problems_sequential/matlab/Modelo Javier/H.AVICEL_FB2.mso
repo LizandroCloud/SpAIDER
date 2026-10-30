@@ -1,0 +1,91 @@
+#*===============================
+Cavalcanti-Montaño, I. D., Galeano, S. C. A.,Rodríguez-Zúñiga, U. F., Giordano, R. de L. C., 
+Giordano, R. de C., de Sousa Jr., R. 2013. "Optimal bioreactor operational policies for the 
+enzymatic hydrolysis of sugarcane bagasse". Bioenerg. Res., DOI 10.1007/s12155-013-9294-7
+=================================*#
+
+FlowSheet Avicel
+
+	VARIABLES 
+	Fsol as Real (Brief="Vazão de solidos",	Lower=-1,   Unit='l/min');
+	Fenz as Real (Brief="Vazão de enzima",	Lower=-1,   Unit='l/min');
+	Fin	 as Real (Brief="Vazão de entrada",	Lower=0,    Unit='l/min'); 
+	Fout as Real (Brief="Vazão de saida",	Lower=0,    Unit='l/min'); 
+	V  	as Real (Brief="Volume",			Lower=0,    Unit='l'); 
+	E   as Real (Brief="Concent. enzima",	Lower=0,    Unit='g/l'); 
+	C   as Real (Brief="Celulose",  		Lower=0,    Unit='g/l'); 
+	G   as Real (Brief="Glicose",    		Lower=-1,   Unit='g/l'); 
+	r	as Real (Brief="C to G",    		Lower=-1,	Unit='g/(l*min)');
+	Cin	as Real (Brief="Celulose in",  		Lower=0,    Unit='g/l');
+	Gin as Real (Brief="Glicose in",    	Lower=-1,   Unit='g/l'); 
+	Ein as Real (Brief="Enzima in",     	Lower=0,    Unit='g/l'); 
+	Co	as Real (Brief="Celulose inicial",  Lower=0,    Unit='g/l');
+	Go 	as Real (Brief="Glicose inicial",   Lower=-1,   	Unit='g/l'); 
+	Eo 	as Real (Brief="Enzima inicial",    Lower=0,    Unit='g/l');
+	Vo 	as Real (Brief="Volume inicial",    Lower=0.1,    Unit='l');
+	
+	Xc 	as Real (Brief="Conversão to G",    Lower=0);
+#	Profit as Real;
+		
+	PARAMETERS
+    # Saccarification par.;
+	k		as Real (Brief="kte r1",			Default=1.23,	Unit='1/min');
+	Km  	as Real (Brief="kte.Sat.", 			Default=31.3,	Unit='g/l');		
+	KIG 	as Real (Brief="Ini. por G", 		Default=0.041, 	Unit='g/l');
+	Eenz   	as Real (Brief="Concent. enzima",	Default=0.2516,	Unit='g/l'); 
+	Csol   	as Real (Brief="Celulose",  		Default=72,	    Unit='g/l'); 
+	Gsol   	as Real (Brief="Glicose",    		Default=0,    	Unit='g/l');
+#	Peta    as Real (Brief="Preço etanol",    	Default=0);
+#	Penz    as Real (Brief="Preço enzima",    	Default=0);
+	
+	SPECIFY
+	Fenz = 0.0001	*'l/min'; #0.01
+	Fsol = 0.0004	*'l/min'; #0.04
+	Fout = 0		*'l/min'; 
+	Co	 = 80 		*'g/l';
+	Go	 = 0 		*'g/l';	
+	Eo	 = 1.937 	*'g/l';	
+	Vo	 = 0.1 		*'l';
+	
+	SET
+	k	= 0.0257458	*'1/min';
+	Km  = 11.6035	*'g/l';
+	KIG = 5.38839	*'g/l';	
+	
+	Csol= 80*(5/4)		*'g/l';
+	Gsol= 0*(5/4) 		*'g/l';
+	Eenz = 1.937*(5/1) 	*'g/l';
+	
+#	Peta=1.1356; #* 'R$/L' cotação 28/10/2014 
+#	Penz=0000; #* 'R$/g' 
+#===========================================		
+	EQUATIONS
+# Mixer		
+	Fsol + Fenz = Fin;
+	Fsol*Csol = Fin*Cin;
+	Fsol*Gsol = Fin*Gin;
+	Fenz*Eenz = Fin*Ein;
+# Reator	
+	r = k*E*C/(Km*(1+G/KIG)+C); 
+	diff(C) = (Fin/V)*(Cin-C) - r;
+	diff(G) = (Fin/V)*(Gin-G) + 1.111*r;
+	diff(E) = (Fin/V)*(Ein-E);
+	diff(V) = (Fin-Fout);
+
+	Xc = G*V/(1.111*(Co*Vo + Cin*Fin*time))*100;
+#	Profit = G*V*46,06844/180.1559*0,51*1/789*Peta - E*V*Penz;
+		
+	INITIAL
+	C = Co; 
+	G = Go;
+	E = Eo; 
+	V = Vo;   
+	
+	OPTIONS
+	TimeStart = 0;
+	TimeStep  = 1;
+	TimeEnd   = 72;
+	TimeUnit  = 'h';
+	DAESolver (File = "dasslc", RelativeAccuracy = 1e-6, AbsoluteAccuracy = 1e-8);
+	Dynamic = true;
+end

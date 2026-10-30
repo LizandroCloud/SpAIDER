@@ -1,0 +1,20 @@
+
+* cstrdelaunay.m 
+* triangulateQD.m
+* triangulateQD1.m
+edginside
+edgonboundary
+pointinedge      
+pointinside      
+pointondisk      
+pointtip
+pointinregion    
+pointonboundary  
+pointonline
+
+triangulate.m
+retriangulate.m (kan dit weg ten voordele van triangulateQD?)
+
+
+/data/home/u0014502/Matlab/Athome/Dim2/anglesboundary2.m
+lijkt niet nodig (find -name "*.m" | xargs grep anglesboundary2)

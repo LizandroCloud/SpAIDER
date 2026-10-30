@@ -1,0 +1,196 @@
+using "types";
+
+Model pressure_transmitter
+	PARAMETERS
+	RangeMax	as control_signal	(Brief="Transmitter maximum range",Unit='kPa',Default=10000);
+	RangeMin	as control_signal	(Brief="Transmitter minimum range",Unit='kPa',Default=0);
+
+	VARIABLES
+in	PVinput		as control_signal	(Brief="Input signal from process variable",Unit='kPa',Default=5000);
+	SPinput		as control_signal	(Brief="Set-point from user/master loop",Unit='kPa',Default=5000);
+out	PVoutput 	as control_signal	(Brief="Bounded process variable output signal",Default=0.5);
+out	SPoutput 	as control_signal	(Brief="Bounded set-point output signal",Default=0.5);
+
+	EQUATIONS
+	"Bounded process variable output signal to controller input"
+	PVoutput*(RangeMax - RangeMin) = PVinput - RangeMin;
+
+	"Bounded set-point output signal to controller input"
+	SPoutput*(RangeMax - RangeMin) = SPinput - RangeMin;
+end
+
+Model temperature_transmitter
+	PARAMETERS
+	RangeMax	as control_signal	(Brief="Transmitter maximum range",Unit='K',Default=600);
+	RangeMin	as control_signal	(Brief="Transmitter minimum range",Unit='K',Default=300);
+
+	VARIABLES
+in	PVinput		as control_signal	(Brief="Input signal from process variable",Unit='K',Default=450);
+	SPinput		as control_signal	(Brief="Set-point from user/master loop",Unit='K',Default=450);
+out	PVoutput 	as control_signal	(Brief="Bounded process variable output signal",Default=0.5);
+out	SPoutput 	as control_signal	(Brief="Bounded set-point output signal",Default=0.5);
+
+	EQUATIONS
+	"Bounded process variable output signal to controller input"
+	PVoutput*(RangeMax - RangeMin) = PVinput - RangeMin;
+
+	"Bounded set-point output signal to controller input"
+	SPoutput*(RangeMax - RangeMin) = SPinput - RangeMin;
+end
+
+Model level_transmitter
+	PARAMETERS
+	RangeMax	as control_signal	(Brief="Transmitter maximum range",Unit='m',Default=3);
+	RangeMin	as control_signal	(Brief="Transmitter minimum range",Unit='m',Default=0);
+
+	VARIABLES
+in	PVinput		as control_signal	(Brief="Input signal from process variable",Unit='m',Default=1.5);
+	SPinput		as control_signal	(Brief="Set-point from user/master loop",Unit='m',Default=1.5);
+out	PVoutput 	as control_signal	(Brief="Bounded process variable output signal",Default=0.5);
+out	SPoutput 	as control_signal	(Brief="Bounded set-point output signal",Default=0.5);
+
+	EQUATIONS
+	"Bounded process variable output signal to controller input"
+	PVoutput*(RangeMax - RangeMin) = PVinput - RangeMin;
+
+	"Bounded set-point output signal to controller input"
+	SPoutput*(RangeMax - RangeMin) = SPinput - RangeMin;
+end
+
+Model volflow_transmitter
+	PARAMETERS
+	RangeMax	as control_signal	(Brief="Transmitter maximum range",Unit='m^3/h',Default=1000);
+	RangeMin	as control_signal	(Brief="Transmitter minimum range",Unit='m^3/h',Default=0);
+
+	VARIABLES
+in	PVinput		as control_signal	(Brief="Input signal from process variable",Unit='m^3/h',Default=500);
+	SPinput		as control_signal	(Brief="Set-point from user/master loop",Unit='m^3/h',Default=500);
+out	PVoutput 	as control_signal	(Brief="Bounded process variable output signal",Default=0.5);
+out	SPoutput 	as control_signal	(Brief="Bounded set-point output signal",Default=0.5);
+
+	EQUATIONS
+	"Bounded process variable output signal to controller input"
+	PVoutput*(RangeMax - RangeMin) = PVinput - RangeMin;
+
+	"Bounded set-point output signal to controller input"
+	SPoutput*(RangeMax - RangeMin) = SPinput - RangeMin;
+end
+
+Model PID_incr
+	PARAMETERS
+	action			as Switcher	(Brief="Controller action",Valid=["Reverse","Direct"],Default="Reverse");
+	
+	VARIABLES
+in	PV				as control_signal	(Brief="Bounded input signal from transmitter",Default=0.5);
+in	SP 				as control_signal 	(Brief="Bounded set-point from transmitter",Default=0.5);
+out	MVoutput		as control_signal	(Brief="Bounded manipulated variable output signal",Default=0.5);
+	unboutp			as control_signal	(Brief="Unbounded output signal",Default=0.5);
+	error			as control_signal	(Brief="Controller error",Default=0);
+	derivFilt		as control_signal 	(Brief="Derivative term filter",Unit='1/s',Default=0);
+	dAWBTintterm	as control_signal	(Brief="Integral term derivative",Unit='1/min',Default=0);
+	KC 				as positive 		(Brief="Proportional gain",Default=1);
+	TI 				as time_min 		(Brief="Integral time",Default=10);
+	KI 				as frequency		(Brief="Integral gain",Default=1/10);
+	TD 				as time_min			(Brief="Derivative time",Default=0);
+	KD 				as time_min			(Brief="Derivative gain",Default=0);
+	PID_action     	as Real				(Hidden=true,Default=1);
+
+	EQUATIONS
+	"Controller error"
+	error = SP - PV;
+	
+	"Derivative term filter"
+	0.1*(TD+1e-3*'s')*diff(derivFilt) = diff(error) - derivFilt;
+	
+	"Integral term derivative with bumpless transfer"
+	dAWBTintterm = KI*error;
+	
+	"Conventional x decoupled PID law: integral action parameter"
+	KI*TI = KC;
+	
+	"Conventional x decoupled PID law: derivative action parameter"
+	KD = KC*TD;
+
+	"Bounded output"
+	MVoutput = 0.5*(1+tanh((unboutp-0.00001)/1e-6))*0.5*(1+tanh((0.99999-unboutp)/1e-6))*unboutp
+		+ 0.5*(1+tanh((unboutp-0.99999)/1e-6));
+
+	switch action
+		case "Direct":
+			PID_action = -1.0;
+		
+		case "Reverse":
+			PID_action = 1.0;
+	end
+	
+	"PID incremental law"
+	diff(unboutp) = PID_action*(KC*diff(error) + dAWBTintterm + KD*diff(derivFilt));
+	
+	INITIAL
+	diff(derivFilt) = 0/'s^2';
+end
+
+Model PID_pos
+	PARAMETERS
+	action			as Switcher	(Brief="Controller action",Valid=["Reverse","Direct"],Default="Reverse");
+	
+	VARIABLES
+in	PV				as control_signal	(Brief="Bounded input signal from transmitter",Default=0.5);
+in	SP 				as control_signal 	(Brief="Bounded set-point from transmitter",Default=0.5);
+out	MVoutput		as control_signal	(Brief="Bounded manipulated variable output signal",Default=0.5);
+	MVinput			as control_signal	(Brief="Manipulated variable input signal (manual mode)",Default=0.5);
+	unboutp			as control_signal	(Brief="Unbounded output signal",Default=0.5);
+	error			as control_signal	(Brief="Controller error",Default=0);
+	derivFilt		as control_signal 	(Brief="Derivative term filter",Default=0);
+	AWBTintterm		as control_signal	(Brief="Integral term",Default=0);
+	KC 				as positive 		(Brief="Proportional gain",Default=1);
+	TI 				as time_min 		(Brief="Integral time",Default=10);
+	KI 				as frequency		(Brief="Integral gain",DisplayUnit='1/min',Default=1/10);
+	TD 				as time_min			(Brief="Derivative time",Default=0);
+	KD 				as time_min			(Brief="Derivative gain",Default=0);
+	PID_action     	as Real				(Hidden=true);
+	mode			as Real				(Brief="Controller mode: Manual = 1, Auto = 0",Default=0);
+	
+	EQUATIONS
+	"Controller error"
+	error = SP - PV;
+	
+	"Derivative term filter"
+	0.1*(TD+1e-3*'s')*diff(derivFilt) = error - derivFilt;
+	
+	"Integral term with anti-windup and bumpless transfer"
+	diff(AWBTintterm) = KI*error*
+		0.5*(1+tanh((unboutp-0.00001)/1e-6))*0.5*(1+tanh((0.99999-unboutp)/1e-6));
+	
+	"Conventional x decoupled PID law: integral action parameter"
+	KI*TI = KC;
+	
+	"Conventional x decoupled PID law: derivative action parameter"
+	KD = KC*TD;
+
+	"Bounded output"
+	MVoutput = 0.5*(1+tanh((unboutp-0.00001)/1e-6))*0.5*(1+tanh((0.99999-unboutp)/1e-6))*unboutp
+		+ 0.5*(1+tanh((unboutp-0.99999)/1e-6));
+
+	switch action
+		case "Direct":
+			PID_action = -1.0;
+		
+		case "Reverse":
+			PID_action = 1.0;
+	end
+	
+	unboutp = 0.5*(1+tanh((2*mode-1)/1e-5))*MVinput 
+		+ 0.5*(1+tanh((1-2*mode)/1e-5))*PID_action*(KC*error + AWBTintterm + KD*diff(derivFilt));
+	
+#	if mode equal 1 then		
+#		"Manul output defined from user"
+#		unboutp = MVinput;
+#	else
+#		"PID positional law"
+#		unboutp = PID_action*(KC*error + AWBTintterm + KD*diff(derivFilt));
+#	end
+
+	INITIAL
+	diff(derivFilt) = 0/'s';
+end

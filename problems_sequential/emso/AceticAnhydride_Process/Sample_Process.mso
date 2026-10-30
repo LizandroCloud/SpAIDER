@@ -1,0 +1,141 @@
+#*-------------------------------------------------------------------
+* EMSO Model Library (EML) Copyright (C) 2004 - 2007 ALSOC.
+*
+* This LIBRARY is free software; you can distribute it and/or modify
+* it under the therms of the ALSOC FREE LICENSE as available at
+* http://www.enq.ufrgs.br/alsoc.
+*
+* EMSO Copyright (C) 2004 - 2007 ALSOC, original code
+* from http://www.rps.eng.br Copyright (C) 2002-2004.
+* All rights reserved.
+*
+* EMSO is distributed under the therms of the ALSOC LICENSE as
+* available at http://www.enq.ufrgs.br/alsoc.
+*
+*--------------------------------------------------------------------
+* EMSO Sample file showing an Adiabatic Production of Acetic Anhydride with a PFR and recycle
+*
+*
+* Based on Example 8-6 of Elements of Chemical Reaction Engineering
+* Second Edition H. Scott Fogler
+*
+*
+*--------------------------------------------------------------------
+* 
+* This sample file needs VRTherm (www.vrtech.com.br) to run.
+*
+*----------------------------------------------------------------------
+* Author: Rafael de P. Soares
+*         Paula B. Staudt
+*		Gerson B. Bicca
+* $Id: sample_process.mso 213 2007-03-15 19:40:55Z rafael $
+*--------------------------------------------------------------------*#
+using "heat_exchangers/heater";
+using "heat_exchangers/Mheatex";
+using "reactors/pfr";
+
+FlowSheet AceticAnhydride_Process
+	
+PARAMETERS
+
+	PP   		as Plugin (Brief="Physical Properties",
+		Type = "PP",
+		Components = ["acetone", "ketene", "methane"],
+		LiquidModel = "PR",
+		VapourModel = "PR"
+	);
+	NComp 	as Integer;
+
+DEVICES
+
+	Feed			as simple_source; 		# A Feed Stream
+	Mheater			as Mheatex;	# A Multi-stream Heat Exchanger
+	Cooler 			as cooler;		# A Cooler
+	Heater 			as heater;		# A heater
+	Reac 			as pfr;				# A PFR Reactor
+	Product			as sink;			# Product
+	Heat_1 			as energy_source; # Heat Supplied
+	Cold_2 			as energy_sink; # Cold Supplied
+SET
+
+	NComp 					= PP.NumberOfComponents;
+	Mheater.Nhot          	= 1;
+    Mheater.Ncold         	= 1;
+	
+	Heater.Kvalues   		= "no";# Faster convergence
+	Cooler.Kvalues  		= "no";# Faster convergence
+	Mheater.FlowDirection	= "counter";
+	
+	Reac.NDisc 	= 10;
+	Reac.Across = 0.56 * 'm^2';
+	Reac.L 		= 2.28 * 'm';
+	Reac.NReac 	= 1;
+
+# Reaction 1: A -> B + C
+	Reac.stoic(:,1) = [-1, 1, 1];
+
+EQUATIONS
+
+for z in [1:Reac.NDisc] do
+	
+"Reaction Rate = k*C(1)"
+	Reac.r(1,z)  = exp(34.34 - (34222 * 'K') / Reac.str(z).T)*'1/s' * Reac.C(1,z);
+
+"Heat of reaction"
+	Reac.Hr(1,z) = -80.77 * 'kJ/mol';
+
+"Pressure Drop (no pressure drop)"
+	Reac.str(z+1).P = Reac.str(z).P;
+
+end
+
+SPECIFY
+
+	Feed.F = 137.9 * 'kmol/h';
+	Feed.T = 350 * 'K';
+	Feed.P = 1.6  * 'atm';
+	Feed.MolarComposition = [1, 0, 0];
+
+	Mheater.Method.Fc   		= 1;
+	Mheater.OutletCold(1).T		= 400*'K';
+	
+	Mheater.OutletHot(1).P   	= 1.5 * 'atm';
+	Mheater.OutletCold(1).P   	= 1.6 * 'atm';
+
+	Heater.Outlet.T 	= 1035*'K';
+	Heater.Outlet.P 	=  1.6 * 'atm';
+	
+	Cooler.Outlet.T 	= 400*'K';
+	Cooler.Outlet.P 	=  1.5 * 'atm';
+
+	Reac.q     		= 0     * 'J/s';
+
+CONNECTIONS
+
+	Feed.Outlet  				to  Mheater.InletCold(1); 
+	Mheater.OutletCold(1) 		to  Heater.Inlet;
+	Heater.Outlet	  			to  Reac.Inlet;
+	Reac.Outlet  				to  Mheater.InletHot(1);
+	Mheater.OutletHot(1) 		to  Cooler.Inlet;
+	Cooler.Outlet				to  Product.Inlet;
+	Heat_1.OutletQ 				to Heater.Heat;
+	Cooler.Heat					to Cold_2.InletQ;
+
+INITIAL
+
+for z in [2:Reac.NDisc+1] do
+	
+	Reac.str(z).T = Reac.Inlet.T;
+	Reac.str(z).z(1:NComp) = Reac.Inlet.z(1:NComp);
+
+end
+
+OPTIONS
+	TimeStep 	= 0.05;
+	TimeEnd 	= 10;
+	Dynamic = true;
+	DAESolver(
+		File = "dasslc",
+		RelativeAccuracy = 1e-4
+	);
+end

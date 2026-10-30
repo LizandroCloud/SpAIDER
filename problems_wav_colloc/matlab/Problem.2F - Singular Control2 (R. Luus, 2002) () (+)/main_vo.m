@@ -36,7 +36,9 @@ options = optimset('LargeScale','off');
       for i=1:length (    d_ini(1,:) )
 %      d_inis(1:16,i)= spline(1:length(    d_ini(:,i) ),d_ini(:,i),1:16)
 %       Y(:,i) = interp(d_ini(:,i),0)
-     X(:,i) = upsample( d_ini(:,i),1 );
+     for i=1:length(d_ini(1,:))
+    X(:,i) = d_ini(:,i);
+end
       end
 %  
  d_ini=X;

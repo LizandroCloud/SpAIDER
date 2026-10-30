@@ -1,0 +1,49 @@
+FlowSheet Singular
+	
+	PARAMETERS
+	
+	VARIABLES
+	
+	x1 as Real;
+	x2 as Real;
+	x3 as Real;
+	x1_o as Real;
+	x2_o as Real;
+	x3_o as Real;
+	u as Real;
+	tal as Real;
+
+	EQUATIONS
+	
+	#*if time < 1 then
+	u = -1;
+	else
+	u = 1;
+	end
+	*#
+	diff(x1) = x2;
+	diff(x2) = u;
+	diff(x3) = ( (x1)^2 );
+	
+	SPECIFY
+	
+	u=1;
+	x1_o = 0;
+	x2_o = 1;
+	x3_o = 0;
+	tal =1;
+	
+	INITIAL  # initial conditions
+	
+	x1 = x1_o;
+	x2 = x2_o;
+	x3 = x3_o;
+	
+	OPTIONS
+	
+	DAESolver (File="dasslc");
+	TimeStep = 0.05;
+	TimeEnd = 5;
+	TimeUnit = 'h';
+
+end

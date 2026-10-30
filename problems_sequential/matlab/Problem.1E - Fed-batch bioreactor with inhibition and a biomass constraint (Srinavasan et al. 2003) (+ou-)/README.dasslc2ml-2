@@ -1,0 +1,65 @@
+========================================================================
+        DESCRIPTION
+========================================================================
+
+Matlab mex implementation of dasslc, solver for differential algebraic
+equations of any index.
+
+Version 1.2, May 2008
+
+Author: Argimiro R. Secchi <arge@enq.ufrgs.br>
+	Department of Chemical Engineering
+	Federal University of Rio Grande do Sul, Brazil
+
+Based on Steinar Hauan <hauan@cmu.edu>
+
+This code is published under the BSD License
+http://www.opensource.org/licenses/bsd-license.php
+
+It can be dowloaded at
+http://www.enq.ufrgs.br/enqlib/numeric
+with the Version 3.3 of dasslc.
+========================================================================
+        INSTALLATION INSTRUCTIONS
+========================================================================
+uncomment #define MATLAB in dasslc.h
+
+MATLAB up to 5.3
+mex -V4 -output dasslc dasslc2ml.c dasslc.c
+
+MATLAB version > 5.3
+mex -output dasslc dasslc2ml.c dasslc.c
+mex -output dasslcss dasslc2mlss.c dasslc.c
+
+========================================================================
+        LIST OF FILES 
+========================================================================
+
+    README.dasslc2ml: this file
+
+    dasslc.m        : short mex interface documentation (from matlab)
+    dasslc.dll	    : compiled mex file for windows
+    dasslc2ml.c	    : mex gateway function
+    dasslc.c	    : the solver
+    dasslc.h	    : solver header file
+    dasslc.pdf	    : solver manual
+
+    pend.m	    : residual function of classical pendulum
+    jacpend.m       : iteration matrix of pendulum problem
+    test_pend.m     : calling script of pendulum problem
+
+    dydt.m          : residual function of simple example
+    test.m          : calling script of simple example
+
+    dydt1.m         : minimal residual function of simple example
+    test1.m         : calling script of simple example with minimal args
+
+========================================================================
+        CHANGELOG
+========================================================================
+* oct 2007: version 1.0 @ Matlab v5.3 [windows,unix]
+            - original version by Argimiro R. Secchi
+* apr 2008: version 1.1 @ Matlab v7.4 [windows,unix]
+            - setting up to compile for MATLAB versions > 5.3
+* may 2008: version 1.2 @ Matlab v7.4 [windows,unix]
+            - adding optional argument yp0 (initial yp)

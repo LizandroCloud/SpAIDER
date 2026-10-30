@@ -1,0 +1,135 @@
+function [ dx ] = modelo_eq( t_out, x, ws, ks,ts,reg,ns,ne,te,n_s,n_c,ns_a,ts_frozen,points,tal,est,utarg,tstarg,nstarg)
+[u] = ver_reg(ws,t_out,te,ks,ns,reg,est);
+[uref] = ver_reg(utarg,t_out,tstarg,ks,nstarg,reg,est);
+
+r1amax=0.85              ;
+r1bmax=0.022             ;
+r2mmax=0.018             ;
+r3max=0.09               ;
+r4max=0.03               ;
+r5max=0.03               ;
+r6max=0.75               ;
+r7max=0.03               ;
+r7mmax=0.012             ;
+k1a=0.08                 ;
+k1b=0.001                ;
+k2m=0.009                ;
+k3=0.09                  ;
+k4=0.05                  ;
+k5=0.05                  ;
+k6=0.05                  ;
+k7=0.001                 ;
+k7m=0.03                 ;
+y1=1                     ;
+y2m=1                    ;
+y3=0.68                  ;
+y4=0.7                   ;
+y5=1                     ;
+y6=0.7                   ;
+y7=1.1                   ;
+ke1a=20*k1a              ;
+remax=0.001              ;
+beta=0.1                 ;
+rgmaxchapeu=0.0575       ;
+kglinha=0.01             ;
+kg=0.05                  ;
+ycm1=0.2                 ;
+ycm2=0.15                ;
+ycm3=0.15              ;
+ycm4=(1-ycm1-ycm2-ycm3)/2;
+s1f=0.95                 ;
+s2f=0.4238               ;
+alfa=100                 ;
+D=[0 0.031 0.033]        ;
+
+if t_out<8.5
+   D = D(1);
+   j=1;
+elseif t_out>8.5 & t_out<113.5
+    D=D(2);
+    j=2;
+else
+    D=D(3);
+    j=1;
+end
+
+y(1)=(r1amax*(x(1)/(k1a+x(1)+((x(1)^2)/1.0356)))*(x(7)/(x(7)+kglinha))*(x(10)/(((10^-7)+remax)/(rgmaxchapeu+beta)))                 );
+y(2)=(r1bmax*(x(1)/(k1b+x(1)+((x(1)^2)/1.4114)))*(x(7)/(x(7)+kglinha))*(x(11)/(((10^-7)+remax)/(rgmaxchapeu+beta)))                 );
+y(3)=(r3max*(x(2)/(k3+x(2)+((x(2)^2)/0.74334)))*(x(7)/(x(7)+kglinha))*(x(12)/(((10^-7)+remax)/(rgmaxchapeu+beta)))                    );
+y(4)=(r7max*(x(2)/(k7+x(2)+((x(2)^2)/0.19901)))*(x(7)/(x(7)+kglinha))*(x(15)/(((10^-7)+remax)/(rgmaxchapeu+beta)))                    );
+y(5)=r4max*(x(3)/(k4+x(3)))*(x(7)/(x(7)+kglinha))*(x(13)/(((10^-7)+remax)/(rgmaxchapeu+beta))                                    );
+y(6)=(r6max*(x(3)/(k6+x(3)))*(x(7)/(x(7)+kglinha))*(x(14)/(((10^-7)+remax)/(rgmaxchapeu+beta)))                                  );
+y(7)=(r5max*(x(4)/(k5+x(4)))*(x(7)/(x(7)+kglinha))                                                                               );
+y(8)=(r2mmax*(x(1)/(k2m+x(1)))*(x(7)/(x(7)+kglinha))                                                                             );
+y(9)=(r7mmax*(x(2)/(k7m+x(2)))*(x(7)/(x(7)+kglinha))                                                                             );
+y(10)=(remax*(x(1)/(ke1a+x(1)))                                                                                                  );
+y(11)=(remax*(x(1)/(k1b+x(1)))                                                                                                   );
+y(12)=(remax*(x(2)/(k3+x(2)))                                                                                                    );
+y(13)=(remax*(x(3)/(k4+x(3)))                                                                                                    );
+y(14)=(remax*(x(3)/(k6+x(3)))                                                                                                    );
+y(15)=(remax*(x(2)/(k7+x(2)))                                                                                                    );
+y(16)=(rgmaxchapeu*(x(3)/(x(3)+kg))*(x(4)/(x(4)+kg))*(x(5)/(x(5)+kg))*(x(6)/(x(6)+kg))                                           );
+y(17)=((1+tanh((y(1)-y(2))*alfa))/2                                                                                              );
+y(18)=((1+tanh((y(3)-y(4))*alfa))/2                                                                                              );
+y(19)=((1+tanh((y3*y(3)-y4*y(5))*alfa))/2                                                                                        );
+y(20)=(y(1)/(y(1)*y(17)+y(2)*(1-y(17)))                                                                                          );
+y(21)=(y(2)/(y(1)*y(17)+y(2)*(1-y(17)))                                                                                          );
+y(22)=(y(3)/(y(3)*y(18)+y(4)*(1-y(18)))                                                                                          ); 
+y(23)=(y(4)/(y(3)*y(18)+y(4)*(1-y(18)))                                                                                          );
+y(24)=(y3*y(3)/((y3*y(3))*y(19)+(y4*y(5))*(1-y(19)))                                                                             );
+y(25)=(y4*y(5)/((y3*y(3))*y(19)+(y4*y(5))*(1-y(19)))                                                                             );
+y(26)=(y1*(y(1)*y(20)+y(2)*y(21))+y2m*y(8)+y3*y(3)*y(22)+y7*(y(4)*y(23)+y(9))+(y4-1)*y(5)*y(25)+(y5-1)*y(7)-y(6)*y(20)+y(16)*(1-ycm1-ycm2-ycm3-ycm4));
+y(27)=(y(1)/(y(1)+y(2))                                                                                                           );
+y(28)=(y(2)/(y(1)+y(2))                                                                                                           );
+y(29)=(y(3)/(y(3)+y(4))                                                                                                           );
+y(30)=(y(4)/(y(3)+y(4))                                                                                                           );
+y(31)=(y3*y(3)/(y3*y(3)+y4*y(5))                                                                                                  );
+y(32)=(y4*y(5)/(y3*y(3)+y4*y(5))                                                                                                  );  
+y(33)=(y(1)*y(20)+y(2)*y(21)+y(8)                                                                                                 );
+y(34)=(y(3)*y(24)*y(22)+y(4)*y(23)+y(9)                                                                                           );
+
+
+if j==1 %Batelada ou contínuo
+dx(1)=(-(y(1)*y(20) + y(2)*y(21) +y(8))*x(8) +D*(s1f-x(1))                           )*tal;
+dx(2)=(-(y(3)*y(24)*y(22)+y(4)*y(23)+y(9))*x(8)+D*(s2f-x(2))                         )*tal;
+dx(3)=(y1*(y(1)*y(20)+y(2)*y(21))+y5*y(7)-y(5)*y(25)-y(6)*y(20)-ycm1*y(16)-y(26)*x(3))*tal;
+dx(4)=(y3*y(3)*y(24)*y(22)+y4*y(5)*y(25)-y(7)-ycm2*y(16)-y(26)*x(4)                  )*tal;
+dx(5)=(y2m*y(8)-ycm3*y(16)-y(26)*x(5)                                                )*tal;
+dx(6)=(y7*(y(4)*y(23)+y(9))-ycm4*y(16)-y(26)*x(6)                                    )*tal;
+dx(7)=(y(16)-y(26)*x(7)                                                              )*tal;
+dx(8)=((y(26)-D)*x(8)                                                                )*tal;
+dx(9)=(y6*y(6)*y(20)*x(8)-D*x(9)                                                     )*tal;
+dx(10)=((10^-7)+y(10)*y(27)-(y(26)+beta)*x(10)                                        )*tal;
+dx(11)=((10^-7)+y(11)*y(28)-(y(26)+beta)*x(11)                                        )*tal;
+dx(12)=((10^-7)+y(12)*y(31)*y(29)-(y(26)+beta)*x(12)                                  )*tal;
+dx(13)=((10^-7)+y(13)*y(32)-(y(26)+beta)*x(13)                                        )*tal;
+dx(14)=((10^-7)+y(14)*y(27)-(y(26)+beta)*x(14)                                        )*tal;
+dx(15)=((10^-7)+y(15)*y(30)-(y(26)+beta)*x(15)                                        )*tal;
+dx(16)=(0                                                                             )*tal;
+
+%Considerando as duas concentrações de substrato constantes
+elseif j==2 %Batelada alimentada
+    dx(1)=(0                                                                                       )*tal; 
+    dx(16)=(u(1)+u(2)                                                                         )*tal;
+    dx(2)=(0                                                                                       )*tal; 
+    dx(3)=(y1*(y(1)*y(20)+y(2)*y(21))+y5*y(7)-y(5)*y(25)-y(6)*y(20)-ycm1*y(16)-y(26)*x(3)                      )*tal; 
+    dx(4)=(y3*y(3)*y(24)*y(22)+y4*y(5)*y(25)-y(7)-ycm2*y(16)-y(26)*x(4)                            )*tal; 
+    dx(5)=(y2m*y(8)-ycm3*y(16)-y(26)*x(5)                                                          )*tal; 
+    dx(6)=(y7*(y(4)*y(23)+y(9))-ycm4*y(16)-y(26)*x(6)                                              )*tal; 
+    dx(7)=(y(16)-y(26)*x(7)                                                                        )*tal; 
+    dx(8)=((y(26)-(1/x(16))*dx(16))*x(8)                                                           )*tal; 
+    dx(9)=(y6*y(6)*y(20)*x(8)-(1/x(16))*dx(16)*x(9)                                                )*tal; 
+    dx(10)=((10^-7)+y(10)*y(27)-(y(26)+beta)*x(10)                                                  )*tal; 
+    dx(11)=((10^-7)+y(11)*y(28)-(y(26)+beta)*x(11)                                                  )*tal; 
+    dx(12)=((10^-7)+y(12)*y(31)*y(29)-(y(26)+beta)*x(12)                                           )*tal; 
+    dx(13)=((10^-7)+y(13)*y(32)-(y(26)+beta)*x(13)                                                 )*tal; 
+    dx(14)=((10^-7)+y(14)*y(27)-(y(26)+beta)*x(14)                                                  )*tal; 
+    dx(15)=((10^-7)+y(15)*y(30)-(y(26)+beta)*x(15)                                                 )*tal; 
+%     dx(17)=((y(33)*x(8)*x(16)+x(1)*dx(18))/(s1f-x(1))                                              )*tal;%f1
+%     dx(18)=((-y(34)*x(8)*x(16)*(s1f-x(1))-x(2)*y(33)*x(8)*x(16))/(s1f*x(2)-s2f*(s1f-x(1)))         )*tal;%f2
+end
+
+dx=transp(dx);
+
+end    
+

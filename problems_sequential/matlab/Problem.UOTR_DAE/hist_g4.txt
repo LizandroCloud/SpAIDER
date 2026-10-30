@@ -1,0 +1,281 @@
+Iteration: 2
+Number of stages: 4
+Method: cvpshrink
+ Iter  Func-count            Fval   Feasibility   Step Length       Norm of   First-order  
+                                                                       step    optimality
+    0           9    1.852576e+02     1.440e+01     1.000e+00     0.000e+00     8.759e+00  
+    1          18    1.859871e+02     1.358e+01     1.000e+00     2.702e+00     8.976e+02  
+    2          27    1.663340e+02     1.279e+01     1.000e+00     4.820e+00     8.919e+02  
+    3          50    1.663340e+02     1.279e+01     2.737e-04     8.180e-04     8.919e+02  
+
+Converged to an infeasible point.
+
+fmincon stopped because the size of the current step is less than
+the value of the step size tolerance but constraints are not
+satisfied to within the value of the constraint tolerance.
+
+<stopping criteria details>
+Elapsed time is 189.930261 seconds.
+Iteration: 3
+Number of stages: 8
+Method: cvpshrink
+ Iter  Func-count            Fval   Feasibility   Step Length       Norm of   First-order  
+                                                                       step    optimality
+    0          17    1.663342e+02     1.151e+01     1.000e+00     0.000e+00     4.826e+00  
+    1          34    1.549169e+02     1.118e+01     1.000e+00     5.467e+00     4.921e+02  
+    2          51    1.817342e+02     9.619e+00     1.000e+00     1.420e+01     4.974e+02  
+    3          68    1.773384e+02     9.537e+00     1.000e+00     2.454e+00     6.097e+02  
+    4          85    1.715253e+02     9.498e+00     1.000e+00     2.577e+00     8.598e+02  
+    5         104    1.715253e+02     9.498e+00     1.140e-03     1.719e-03     8.598e+02  
+
+Converged to an infeasible point.
+
+fmincon stopped because the size of the current step is less than
+the value of the step size tolerance but constraints are not
+satisfied to within the value of the constraint tolerance.
+
+<stopping criteria details>
+Elapsed time is 980.548218 seconds.
+
+Pgrad =
+
+     1     2     4     5     6     7
+
+
+bias =
+
+     0
+
+
+Pgrad =
+
+     1     2     4     5     6     7
+
+
+Pgrad =
+
+     1     2     4     5     6     7
+
+
+conv =
+
+    0.0303
+
+Iteration: 4
+Number of stages: 14
+Method: cvpshrink
+ Iter  Func-count            Fval   Feasibility   Step Length       Norm of   First-order  
+                                                                       step    optimality
+    0          29    1.715253e+02     6.913e+00     1.000e+00     0.000e+00     9.939e+00  
+    1          58    1.900308e+02     1.975e-11     1.000e+00     7.823e+00     6.048e+01  
+    2          87    1.850343e+02     0.000e+00     1.000e+00     2.372e+00     4.539e+00  
+    3         116    1.820747e+02     0.000e+00     1.000e+00     1.869e+00     7.937e+01  
+    4         145    1.813968e+02     0.000e+00     1.000e+00     5.811e-01     2.250e+01  
+    5         174    1.733409e+02     8.882e-16     1.000e+00     9.510e+00     8.664e+00  
+    6         195    1.733409e+02     8.882e-16     5.585e-04     6.043e-04     8.664e+00  
+
+Local minimum possible. Constraints satisfied.
+
+fmincon stopped because the size of the current step is less than
+the value of the step size tolerance and constraints are 
+satisfied to within the value of the constraint tolerance.
+
+<stopping criteria details>
+Elapsed time is 2404.316598 seconds.
+
+Pgrad =
+
+     1     2     3     4     5     6    10    12    13
+
+
+bias =
+
+     0
+
+
+Pgrad =
+
+     1     2     3     4     5     6    10    12    13
+
+
+Pgrad =
+
+     1     2     3     4     5     6    10    12    13
+
+
+conv2 =
+
+  Columns 1 through 25
+
+     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1
+
+  Columns 26 through 30
+
+     1     1     1     1     1
+
+
+conv =
+
+    0.0303    0.0115
+
+Iteration: 5
+Number of stages: 23
+Method: cvpshrink
+Initial point X0 is not between bounds LB and UB; 
+FMINCON shifted X0 to satisfy the bounds.
+ Iter  Func-count            Fval   Feasibility   Step Length       Norm of   First-order  
+                                                                       step    optimality
+    0          47    1.630336e+02     4.607e-01     1.000e+00     0.000e+00     1.096e+01  
+    1          94    1.612783e+02     0.000e+00     1.000e+00     2.352e+00     6.980e+00  
+    2         141    1.595697e+02     1.260e-11     1.000e+00     4.035e+00     9.674e+00  
+    3         188    1.582137e+02     0.000e+00     1.000e+00     1.353e+00     4.883e+00  
+    4         235    1.552447e+02     0.000e+00     1.000e+00     2.377e+00     9.779e+00  
+    5         282    1.531355e+02     0.000e+00     1.000e+00     2.316e+00     7.371e+00  
+    6         329    1.513024e+02     1.908e-12     1.000e+00     1.685e+00     6.802e+01  
+    7         376    1.511537e+02     0.000e+00     1.000e+00     2.956e-01     2.460e+03  
+    8         423    1.511170e+02     0.000e+00     1.000e+00     2.106e-01     7.528e+02  
+    9         470    1.509714e+02     1.514e-13     1.000e+00     1.877e-01     8.168e+01  
+   10         517    1.508363e+02     3.699e-13     1.000e+00     1.729e-01     8.179e+01  
+   11         564    1.508193e+02     5.773e-15     1.000e+00     2.492e-02     5.873e+00  
+   12         611    1.505365e+02     8.223e-03     1.000e+00     4.905e-01     3.173e+01  
+   13         658    1.503339e+02     5.906e-13     1.000e+00     3.263e-01     1.927e+01  
+   14         705    1.501412e+02     0.000e+00     1.000e+00     4.261e-01     1.567e+03  
+   15         752    1.499329e+02     0.000e+00     1.000e+00     4.464e-01     2.210e+02  
+   16         799    1.499195e+02     0.000e+00     1.000e+00     1.694e-01     2.801e+02  
+   17         846    1.499052e+02     0.000e+00     1.000e+00     1.589e-01     5.310e+01  
+   18         861    1.499052e+02     0.000e+00     4.748e-03     1.158e-03     5.310e+01  
+
+Local minimum possible. Constraints satisfied.
+
+fmincon stopped because the size of the current step is less than
+the value of the step size tolerance and constraints are 
+satisfied to within the value of the constraint tolerance.
+
+<stopping criteria details>
+Elapsed time is 7871.765634 seconds.
+
+Pgrad =
+
+     1     2     3     4     5     6     7     9    10    12    21    23
+
+
+bias =
+
+     0
+
+
+Pgrad =
+
+     1     2     3     4     5     6     7     9    10    12    21    23
+
+
+Pgrad =
+
+     1     2     3     4     5     6     7     9    10    12    21    23
+
+
+conv2 =
+
+  Columns 1 through 25
+
+     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1
+
+  Columns 26 through 30
+
+     1     1     1     1     1
+
+
+conv =
+
+    0.0303    0.0115    0.1573
+
+Iteration: 6
+Number of stages: 35
+Method: cvpshrink
+Initial point X0 is not between bounds LB and UB; 
+FMINCON shifted X0 to satisfy the bounds.
+ Iter  Func-count            Fval   Feasibility   Step Length       Norm of   First-order  
+                                                                       step    optimality
+    0          71    1.471567e+02     5.264e-01     1.000e+00     0.000e+00     1.890e+02  
+    1         142    1.557010e+02     4.307e-01     1.000e+00     6.041e+00     2.666e+05  
+    2         213    1.581748e+02     5.161e-03     1.000e+00     3.710e+00     7.726e+03  
+    3         284    1.498029e+02     3.550e-13     1.000e+00     6.162e+00     3.227e+01  
+    4         355    1.480951e+02     7.534e-12     1.000e+00     2.047e+00     1.733e+01  
+    5         426    1.469807e+02     5.592e-12     1.000e+00     1.964e+00     1.411e+02  
+    6         498    1.455012e+02     9.081e-04     1.000e+00     2.248e+00     3.345e+01  
+    7         569    1.439764e+02     2.736e-12     1.000e+00     1.971e+00     2.010e+01  
+    8         592    1.439764e+02     2.736e-12     2.737e-04     8.116e-04     2.010e+01  
+
+Local minimum possible. Constraints satisfied.
+
+fmincon stopped because the size of the current step is less than
+the value of the step size tolerance and constraints are 
+satisfied to within the value of the constraint tolerance.
+
+<stopping criteria details>
+Elapsed time is 2650.659352 seconds.
+
+Pgrad =
+
+     1     2     3     4     5     6     7     9    10    11    12    13    14    15    17    18    19    20    28    29    30    31
+
+
+bias =
+
+     0
+
+
+Pgrad =
+
+     0     1     2     3     4     5     6     7     9    11    12    13    14    15    17    18    19    20    28    29    30    31
+
+
+Pgrad =
+
+     1     2     3     4     5     6     7     9    11    12    13    14    15    17    18    19    20    28    29    30    31
+
+
+conv2 =
+
+  Columns 1 through 25
+
+     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1
+
+  Columns 26 through 30
+
+     1     1     1     1     1
+
+
+conv =
+
+    0.0303    0.0115    0.1573    0.0422
+
+Iteration: 7
+Number of stages: 54
+Method: cvpshrink
+Initial point X0 is not between bounds LB and UB; 
+FMINCON shifted X0 to satisfy the bounds.
+ Iter  Func-count            Fval   Feasibility   Step Length       Norm of   First-order  
+                                                                       step    optimality
+    0         109    1.437296e+02     8.520e-01     1.000e+00     0.000e+00     2.515e+03  
+    1         218    1.598816e+02     5.626e-01     1.000e+00     1.129e+01     9.804e+06  
+    2         327    1.596396e+02     1.000e-02     1.000e+00     2.082e+00     2.517e+05  
+    3         437    1.584957e+02     3.884e-03     1.000e+00     2.702e+00     2.865e+02  
+    4         546    1.582850e+02     4.610e-03     1.000e+00     2.663e+00     1.342e+03  
+    5         655    1.549238e+02     4.345e-03     1.000e+00     4.030e+00     6.962e+01  
+    6         764    1.564692e+02     1.478e-11     1.000e+00     4.500e+00     7.529e+03  
+    7         874    1.531573e+02     9.816e-03     1.000e+00     5.610e+00     1.299e+02  
+    8         984    1.506095e+02     7.038e-13     1.000e+00     2.876e+00     4.778e+02  
+    9        1093    1.505438e+02     2.006e-12     1.000e+00     1.887e+00     1.473e+03  
+   10        1221    1.505436e+02     1.997e-12     1.140e-03     3.370e-03     4.958e+03  
+   11        1330    1.488240e+02     2.710e-03     1.000e+00     2.679e+00     9.592e+01  
+   12        1350    1.488240e+02     2.710e-03     7.979e-04     1.156e-03     9.592e+01  
+
+Local minimum possible. Constraints satisfied.
+
+fmincon stopped because the size of the current step is less than
+the value of the step size tolerance and constraints are 
+satisfied to within the value of the constraint tolerance.
+
+<stopping criteria details>
+Elapsed time is 8818.059565 seconds.

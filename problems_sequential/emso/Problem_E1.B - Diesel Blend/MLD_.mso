@@ -1,0 +1,304 @@
+
+using "Corrente";
+using "misturador";
+using "TanquesIniciais";
+using "TanqueFinal";
+
+FlowSheet MLD
+PARAMETERS
+    c(8) as Real(Unit='R$/m^3');
+	#tal as Real;
+	
+VARIABLES
+    
+	obj as Real(Unit='R$');
+	
+	obj_o as Real;
+
+	Lo_t1 as Real; 
+	Lo_t2 as Real;
+	Lo_t3 as Real;
+	Lo_t4 as Real;
+	Lo_t5 as Real;
+	Lo_t6 as Real;
+	
+	Lo_Tf as Real;
+	mo_Tf as Real;
+
+	So_Tf as Real;
+
+	IPF_To_Tf as Real;
+	IPE_To_Tf as Real;
+	IMu40_To_Tf as Real;
+	IT50R_To_Tf as Real;
+	IT85R_To_Tf as Real;
+	IT90R_To_Tf as Real;
+	IPA_To_Tf as Real;
+	
+	F1 as Real;
+	F2 as Real;
+	F3 as Real;
+	F4 as Real;
+	F5 as Real;
+	F6 as Real;
+	
+	
+DEVICES
+
+	mix         as misturador;
+	DieselLeve1 as CorrenteSelvagem;
+	DieselLeve2 as CorrenteSelvagem;
+	Tanque1     as Tanques;
+	Tanque2     as Tanques;
+	Tanque3     as Tanques;
+	Tanque4     as Tanques;
+	Tanque5     as Tanques;
+	Tanque6     as Tanques;
+	Tf			as TanqueFinal;
+
+CONNECTIONS
+
+	Tanque1.outlet     to mix.Corr(1);
+	Tanque2.outlet     to mix.Corr(2);
+	Tanque3.outlet     to mix.Corr(3);
+	Tanque4.outlet	   to mix.Corr(4);
+	Tanque5.outlet     to mix.Corr(5);
+	Tanque6.outlet     to mix.Corr(6);
+	DieselLeve1.outlet to mix.Corr(7);
+	DieselLeve2.outlet to mix.Corr(8);
+	
+	mix.Mist           to Tf.inlet;
+	
+SET
+	c = [345.73, 500.29, 379.22, 368, 493.42, 368.67, 438.48, 438.48] * 'R$/m^3';
+	
+	mix.nCorr = 8;
+
+EQUATIONS
+    diff(obj) = c(1)*Tanque1.F_sp + c(2)*Tanque2.F_sp+ c(3)*Tanque3.F_sp+ c(4)*Tanque4.F_sp+
+	            c(5)*Tanque5.F_sp+ c(6)*Tanque6.F_sp+c(7)*DieselLeve1.outlet.F+ c(8)*DieselLeve2.outlet.F*Tanque1.tal ;
+	
+	
+SPECIFY
+
+    #Propriedades do Tanque 1 ( FC-40141)
+
+	Tanque1.cv   = 38*'m^3/h/kPa^0.5';
+	Tanque1.P    = 1*'atm';
+	Tanque1.Pe   = 1*'atm';
+	Tanque1.F_sp = F1 *'m^3/h';
+	#Tanque1.F_sp =195.3*'m^3/h';
+	
+	Tanque1.outlet.Rho	= 876.1;
+	Tanque1.outlet.S	= 143.;
+	Tanque1.outlet.T50R = 308.8;
+	Tanque1.outlet.T85R = 376.7;
+	Tanque1.outlet.T90R = 377.8;
+	Tanque1.outlet.PF   = 40.;
+	Tanque1.outlet.Mu40 = 2.0;
+	Tanque1.outlet.PE   = 8.0;
+	Tanque1.outlet.PA   = 58.0;
+	Tanque1.outlet.nCET	= 43.0;
+
+#Propriedades do Tanque 2 ( FC-4049)
+
+	Tanque2.cv   = 38*'m^3/h/kPa^0.5';
+	Tanque2.P    = 1*'atm';
+	Tanque2.Pe   = 1*'atm';
+	Tanque2.F_sp = F2*'m^3/h';
+	
+	Tanque2.outlet.Rho	= 848.2;
+	Tanque2.outlet.S	= 1576.;
+	Tanque2.outlet.T50R = 0;
+	Tanque2.outlet.T85R = 367.5;
+	Tanque2.outlet.T90R = 377.8;
+	Tanque2.outlet.PF   = 41.5;
+	Tanque2.outlet.Mu40 = 2.0;
+	Tanque2.outlet.PE   = 6.0;
+	Tanque2.outlet.PA   = 65.4;
+	Tanque2.outlet.nCET	= 43.0;
+
+#Propriedades do Tanque 3 ( FC-4060)
+
+	Tanque3.cv   = 38*'m^3/h/kPa^0.5';
+	Tanque3.P    = 1*'atm';
+	Tanque3.Pe   = 1*'atm';
+	Tanque3.F_sp =F3 *'m^3/h';
+	
+	Tanque3.outlet.Rho	= 892.7;
+	Tanque3.outlet.S	= 4251.;
+	Tanque3.outlet.T50R = 350.2;
+	Tanque3.outlet.T85R = 392.2;
+	Tanque3.outlet.T90R = 397.8;
+	Tanque3.outlet.PF   = 40.;
+	Tanque3.outlet.Mu40 = 2.0;
+	Tanque3.outlet.PE   = 10.0;
+	Tanque3.outlet.PA   = 60.;
+	Tanque3.outlet.nCET	= 41.0;
+
+#Propriedades do Tanque 4 ( FC-4073)
+
+	Tanque4.cv   = 38*'m^3/h/kPa^0.5';
+	Tanque4.P    = 1*'atm';
+	Tanque4.Pe   = 1*'atm';
+	Tanque4.F_sp = F4 *'m^3/h';
+	
+	Tanque4.outlet.Rho	= 794.9;
+	Tanque4.outlet.S	= 484.;
+	Tanque4.outlet.T50R = 181.6;
+	Tanque4.outlet.T85R = 200.7;
+	Tanque4.outlet.T90R = 377.8;
+	Tanque4.outlet.PF   = 45.;
+	Tanque4.outlet.Mu40 = 2.0;
+	Tanque4.outlet.PE   = 10.0;
+	Tanque4.outlet.PA   = 60.7;
+	Tanque4.outlet.nCET	= 43.0;
+
+#Propriedades do Tanque 5 ( FC-4074)
+
+	Tanque5.cv   = 38*'m^3/h/kPa^0.5';
+	Tanque5.P    = 1*'atm';
+	Tanque5.Pe   = 1*'atm';
+	Tanque5.F_sp = F5 *'m^3/h';
+	
+	Tanque5.outlet.Rho	= 811.3;
+	Tanque5.outlet.S	= 1077.;
+	Tanque5.outlet.T50R = 280.;
+	Tanque5.outlet.T85R = 246.1;
+	Tanque5.outlet.T90R = 264.5;
+	Tanque5.outlet.PF   = 53.5;
+	Tanque5.outlet.Mu40 = 2.0;
+	Tanque5.outlet.PE   = -10.0;
+	Tanque5.outlet.PA   = 59.1;
+	Tanque5.outlet.nCET	= 47.0;
+
+#Propriedades do Tanque 6 ( FC-4075)
+
+	Tanque6.cv   = 38*'m^3/h/kPa^0.5';
+	Tanque6.P    = 1*'atm';
+	Tanque6.Pe   = 1*'atm';
+	Tanque6.F_sp = F6 *'m^3/h';
+	
+	Tanque6.outlet.Rho	= 772.8;
+	Tanque6.outlet.S	= 406.;
+	Tanque6.outlet.T50R = 147.7;
+	Tanque6.outlet.T85R = 192.5;
+	Tanque6.outlet.T90R = 216.8;
+	Tanque6.outlet.PF   = 41.;
+	Tanque6.outlet.Mu40 = 2.0;
+	Tanque6.outlet.PE   = 10.0;
+	Tanque6.outlet.PA   = 48.0;
+	Tanque6.outlet.nCET	= 43.0;
+
+#Propriedades da Corrente de Diesel 1 ( FIC-20009)
+
+	DieselLeve1.outlet.F	= 0.0*'m^3/h';
+	DieselLeve1.outlet.Rho	= 820.;
+	DieselLeve1.outlet.S	= 1500.;
+	DieselLeve1.outlet.T50R = 300.;
+	DieselLeve1.outlet.T85R = 340.;
+	DieselLeve1.outlet.T90R = 377.8;
+	DieselLeve1.outlet.PF   = 45.;
+	DieselLeve1.outlet.Mu40 = 2.0;
+	DieselLeve1.outlet.PE   = 10.0;
+	DieselLeve1.outlet.PA   = 60.0;
+	DieselLeve1.outlet.nCET	= 43.0;
+    
+#Propriedades da Corrente de Diesel Leve 2 ( FIC-20509)
+
+	DieselLeve2.outlet.F	= 0.0*'m^3/h';
+	DieselLeve2.outlet.Rho	= 820.;
+	DieselLeve2.outlet.S	= 1500.;
+	DieselLeve2.outlet.T50R	= 300.;
+	DieselLeve2.outlet.T85R	= 345.;
+	DieselLeve2.outlet.T90R	= 436.4;
+	DieselLeve2.outlet.PF	= 10.;
+	DieselLeve2.outlet.Mu40	= 10.0;
+	DieselLeve2.outlet.PE	= 10.0;
+	DieselLeve2.outlet.PA	= 60.;
+	DieselLeve2.outlet.nCET	= 48.0;
+	
+	
+	obj_o = 0;
+
+	Lo_t1 = 13; 
+	Lo_t2 = 13;
+	Lo_t3 = 13;
+	Lo_t4 = 13;
+	Lo_t5 = 13;
+	Lo_t6 = 13;
+	
+	Lo_Tf = 1;
+	mo_Tf = 6600.0;
+
+	So_Tf = 1800.0;
+
+	IPF_To_Tf = 42.0;
+	IPE_To_Tf = 5.0;
+	IMu40_To_Tf = 0.15;
+	IT50R_To_Tf = 0.90;
+	IT85R_To_Tf = 5.0;
+	IT90R_To_Tf = 6.0;
+	IPA_To_Tf = 0.3;
+	
+	
+	F1 = 210;
+	F2 = 100;
+	F3 = 100;
+	F4 = 100;
+	F5 = 178;
+	F6 = 133;
+	
+	Tanque1.tal =2500;	
+	Tanque2.tal =Tanque1.tal;
+	Tanque3.tal =Tanque1.tal;
+	Tanque4.tal =Tanque1.tal;
+	Tanque5.tal =Tanque1.tal;
+	Tanque6.tal =Tanque1.tal;
+	#Tf.tal =Tanque1.tal;	
+	#tal =1;
+
+INITIAL
+	obj = obj_o  * 'R$';
+
+	Tanque1.Level = Lo_t1 *'m'; 
+	Tanque2.Level = Lo_t2 *'m';
+	Tanque3.Level = Lo_t3 *'m';
+	Tanque4.Level = Lo_t4 *'m';
+	Tanque5.Level = Lo_t5 *'m';
+	Tanque6.Level = Lo_t6 *'m';
+	
+	Tf.Level      = Lo_Tf *'m';
+	Tf.m		  = mo_Tf ;
+
+	Tf.S          = So_Tf ;
+
+	Tf.IPF_T      = IPF_To_Tf ;
+	Tf.IPE_T      = IPE_To_Tf ;
+	Tf.IMu40_T    = IMu40_To_Tf ;
+	Tf.IT50R_T    = IT50R_To_Tf ;
+	Tf.IT85R_T    = IT85R_To_Tf ;
+	Tf.IT90R_T    = IT90R_To_Tf ;
+	Tf.IPA_T      = IPA_To_Tf ;
+
+#	Tf.m		  = 6.66;
+
+#	Tf.S          = 1150.42;
+
+#	Tf.IPF_T      = 36.473;
+#	Tf.IPE_T      = 4.52017;
+#	Tf.IMu40_T    = 0.0911927;
+#	Tf.IT50R_T    = 0.80641;
+#	Tf.IT85R_T    = 4.06316;
+#	Tf.IT90R_T    = 5.46728;
+#	Tf.IPA_T      = 0.223794;
+
+OPTIONS
+	Dynamic = true;
+	DAESolver (File="dasslc");
+	TimeStart=0;
+	TimeEnd = 1;
+	TimeStep = 0.001;
+	TimeUnit = 's';
+
+end

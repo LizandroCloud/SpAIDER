@@ -46,7 +46,7 @@ function [r0 tstat fstat] = g_state(plot_state,nss,tss,wopt,ns,x0,nUt,w_frozen,c
         ixx=iz*1e5+is;% for different is
         if plot_state==1 
         figure(ixx)
-        stairs(tspan_space*talf,f(:,iz))
+        plot(tspan_space*talf,f(:,iz))
         axis([0 tf_p*talf min(f(:,iz))*.95  max(f(:,iz))*1.05 ])
         title(['State Variable ',int2str(iz),' for: ',int2str(is)-is0,'th iteration']); 
         ylabel('State Variable')

@@ -1,0 +1,16 @@
+C:\Dropbox\Spaider\problems\emso\distillation_ex1\distillation_ex2.mso
+Column_ctrl
+3
+T_F
+Press
+Reflux
+5
+col.trays(1).OutletV.T
+col.trays(2).OutletV.T
+col.trays(3).OutletV.T
+col.trays(4).OutletV.T
+T_F
+0
+
+0
+

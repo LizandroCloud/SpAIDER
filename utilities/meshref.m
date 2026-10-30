@@ -45,10 +45,11 @@ function [tkk wkk ns_ref point] = meshref(Pgrad,ns,ic,ts_a,w02,t0,tf,wfact,u_par
  % 10-30-2012: creation...
  % 12-08-2012: including u_reg
  % 11-20-2014: wfact
- 
-w_upper = 0.4;
-w_lower = 0.6;
+in_SPAIDER.problem.interpolation = 'stage' ;
+w_upper = 0.42;
+w_lower = 0.42;
 % w_medium = 0.42;
+
  
 tspan = linspace(t0,tf,100);
 
@@ -88,7 +89,7 @@ for j=1:1:ns(ic)  % It will be improved in future...
 %                          wfact=w_lower;%w_lower
                         ts_ref(ic,jj+1)=ts_a(ic,j+1)-(ts_a(ic,j+1)- 0)*wfact; 
                         ts_ref(ic,jj+2)=ts_a(ic,j+1);
-                        
+                        in_SPAIDER.problem.interpolation='stage';
                         if strcmp(in_SPAIDER.problem.interpolation,'stage')
                         w_ref(ic,jj) = u_reg1( ts_ref(ic,jj+1),ts_a(ic,:),w02(ic,:),1,ns(ic) );
                         w_ref(ic,jj+1) = u_reg1( ts_ref(ic,jj+2),ts_a(ic,:),w02(ic,:),1,ns(ic) );

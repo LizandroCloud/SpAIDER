@@ -1,0 +1,562 @@
+using "tristream";
+
+Model valv_liq
+	ATTRIBUTES
+	Brief 	= "Basic equations of ISA-75.01.01-2007 for valves with liquid flow only";
+	Info 	= 
+		"Model valid only for liquid streams or triphase streams 
+		with small Rgo (< 10 m^3/m^3)";	
+	
+	PARAMETERS
+	rho_H2Ostd	as dens_mass	(Brief="Water density at std. cond.",Default=999.054);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	Tref		as temperature	(Brief="Reference temperature for std. cond.",Default=288.70556);
+	Pref		as pressure		(Brief="Reference pressure for std. cond.",DisplayUnit='kPa',Default=1);
+	Cv			as positive		(Brief="Valve coefficient constant US units",Unit='gal/min');
+	Kv 			as positive		(Brief="Valve coefficient constant SI units",Unit='m^3/h');
+	Av 			as area			(Brief="Valve coefficient constant",DisplayUnit='cm^2');
+	FL			as fraction		(Brief="Liquid pressure recovery factor",Default=0.91);
+	
+	SET
+	Kv = Cv * ('gal/min'/'m^3/h') * sqrt('bar'/'psi');
+	Av = Cv * sqrt(rho_H2Ostd/'psi');
+	
+	VARIABLES
+in	Inlet		as strL;
+out	Outlet		as triphase_stream;	
+	
+	fc			as fraction		(Brief="Valve inherent characteristic function",Default=0.5);
+	c 			as fraction		(Brief="Valve stem position",Default=0.5);
+	FF			as fraction		(Brief="Liquid critical pressure ratio factor",Default=0.96);
+	DP			as press_delta	(Brief="Pressure drop",DisplayUnit='kPa',Default=0.1);
+	DPchok		as press_delta	(Brief="Pressure drop at choked flow",DisplayUnit='kPa',Default=0.05);
+	PvL			as pressure		(Brief="Liquid absolute vapour pressure",DisplayUnit='kPa',Default=80);
+	PpcL		as pressure		(Brief="Liquid absolute thermodynamic pseudo-critical pressure",DisplayUnit='kPa',Default=30);
+
+	Rseq		as positive		(Brief="Solution gas-oil ratio at equilibrium",Unit='m^3/m^3',Default=10);
+	SumInletGas	as positive		(Brief="Sum of inlet streams gas std. vol. flow",Unit='m^3/d',Default=2e5);
+	Gunbal		as Real			(Brief="Gas std. vol. unbalance",Unit='m^3/d',Default=0);
+
+	EQUATIONS
+	#WARNING! This model is strictly singular if the user specify the flow
+	#and make free the Outlet.P at FlowSheet section when the flow becomes choked.
+	"Pressure-flow relation"
+	Inlet.Qf*((1-Inlet.BSW)*Inlet.d60*rho_H2Ostd + Inlet.BSW*Inlet.rho_Wstd) =
+		0.5*(1+tanh(((DPchok-DP)/'kPa'+1e-3)/1e-6))*fc*Av*sqrt(Inlet.rhoL*DP) +
+		0.5*(1+tanh((DP-DPchok)/'kPa'/1e-6))*fc*Av*sqrt(Inlet.rhoL*DPchok);
+	
+	"Oil std vol. balance"
+#	Inlet.Qf = Outlet.Qf;
+#	Inlet.Qf = Outlet.Qf*(1 + Outlet.Rgo*Outlet.Rv);
+#	Inlet.Qf = Outlet.Qf + Outlet.Qg*Outlet.Rv;
+	Inlet.Qf*(1-Inlet.BSW) = Outlet.Qf*(1-Outlet.BSW) + Outlet.Qg*Outlet.Rv;
+
+#	"Gas std vol. flow balance"
+#	Inlet.Rs = Outlet.Rgo + Outlet.Rs;	
+#	Inlet.Qf*(1-Inlet.BSW)*Inlet.Rs = Outlet.Qf*(1-Outlet.BSW)*(Outlet.Rgo + Outlet.Rs);
+#	Inlet.Qf*(1-Inlet.BSW)*Inlet.Rs = Outlet.Qg + Outlet.Qf*(1-Outlet.BSW)*Outlet.Rs;
+
+	"Sum of inlet streams gas std. vol."
+#	SumInletGas = Inlet.Qf*Inlet.Rs;
+	SumInletGas = Inlet.Qf*(1-Inlet.BSW)*Inlet.Rs;
+
+	"Gas std. vol. unbalance"
+#	Gunbal = Outlet.Qf*Rseq - Inlet.Qf*Inlet.Rs;
+	Gunbal = Outlet.Qf*(1-Outlet.BSW)*Rseq - Inlet.Qf*(1-Inlet.BSW)*Inlet.Rs;
+
+	"Std. vol. balance for liberated gas"
+	Outlet.Qg = 0.5*(1+tanh(-Gunbal/'m^3/d'/1e-6))*(-Gunbal);
+#	Outlet.Qg = 0.5*(1+tanh(-Gunbal/'m^3/d'/1e-2))*(-Gunbal);
+
+	"Std. vol. balance for solution gas-oil ratio"
+	Outlet.Qf*(1-Outlet.BSW)*Outlet.Rs = 0.5*(1+tanh(Gunbal/'m^3/d'/1e-6))*SumInletGas
+		+ 0.5*(1+tanh(-Gunbal/'m^3/d'/1e-6))*Outlet.Qf*(1-Outlet.BSW)*Rseq;
+#	Outlet.Qf*(1-Outlet.BSW)*Outlet.Rs = 0.5*(1+tanh(Gunbal/'m^3/d'/1e-2))*SumInletGas
+#		+ 0.5*(1+tanh(-Gunbal/'m^3/d'/1e-2))*Outlet.Qf*(1-Outlet.BSW)*Rseq;
+
+	"Water std vol. balance"
+#	Inlet.BSW = Outlet.BSW;
+	Inlet.Qf*Inlet.BSW = Outlet.Qf*Outlet.BSW;
+
+	"Water salt mass balance"
+	Inlet.ws = Outlet.ws;
+#	Inlet.Qf*Inlet.BSW*Inlet.rho_Wstd*Inlet.ws = Outlet.Qf*Outlet.BSW*Outlet.rho_Wstd*Outlet.ws;
+
+	"Energy balance: Isenthalpic expansion"
+#	((1-Inlet.BSW)*Inlet.d60*rho_H2Ostd*Inlet.hO + Inlet.BSW*Inlet.rho_Wstd*Inlet.hW) 
+#		=
+#	((1-Outlet.BSW)*(Outlet.d60*rho_H2Ostd*Outlet.hO + Outlet.Rgo*rho_AIRstd*Outlet.dg*Outlet.hG)
+#			+ Outlet.BSW*Outlet.rho_Wstd*Outlet.hW);
+#	Inlet.Qf*((1-Inlet.BSW)*Inlet.d60*rho_H2Ostd*Inlet.hO + Inlet.BSW*Inlet.rho_Wstd*Inlet.hW) 
+#		=
+#	Inlet.Qf*((1-Outlet.BSW)*(Outlet.d60*rho_H2Ostd*Outlet.hO + Outlet.Rgo*rho_AIRstd*Outlet.dg*Outlet.hG)
+#			+ Outlet.BSW*Outlet.rho_Wstd*Outlet.hW);
+	Inlet.Qf*((1-Inlet.BSW)*Inlet.d60*rho_H2Ostd*Inlet.hO + Inlet.BSW*Inlet.rho_Wstd*Inlet.hW) 
+		=
+	Outlet.Qf*((1-Outlet.BSW)*Outlet.d60*rho_H2Ostd*Outlet.hO + Outlet.BSW*Outlet.rho_Wstd*Outlet.hW)
+			+ Outlet.Qg*rho_AIRstd*Outlet.dg*Outlet.hG;
+
+	"Pressure Drop"
+	DP = Inlet.P - Outlet.P;
+	
+	"Pressure drop at choked flow"
+	DPchok = FL^2*(Inlet.P - FF*PvL);
+	
+	"Liquid critical pressure ratio factor"
+#	FF = 0.96 - 0.28*sqrt(PvL/PpcL);
+	FF = 0.5*(1+tanh((PvL-PpcL)/'bar'/1e-6))*(0.96 - 0.28) +
+		0.5*(1+tanh((PpcL-PvL)/'bar'/1e-6))*(0.96 - 0.28*sqrt(PvL/PpcL));
+
+	"Liquid vapour pressure"
+	PvL = Inlet.P;
+
+	"Liquid Absolute thermodynamic pseudo-critical pressure - RIAZI (2005) eq. (2.68) pp. 60"
+	PpcL/'bar' = 
+		6.9575*exp(-1.35e-2*(Inlet.Tbn/'K') - 0.3129*Inlet.d60 + 9.174e-3*(Inlet.Tbn/'K')*Inlet.d60)*
+		(Inlet.Tbn/'K')^0.6791/Inlet.d60^0.6807;
+	
+	"Linear inherent characteristic function"
+	fc = c;
+
+	"Solution Gas/Oil Ratio - VAZQUEZ & BEGGS"
+	Rseq/'ft^3/bbl' = 0.0362*(Outlet.dgL*(1 + 5.912e-5*(141.5/Outlet.d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+		*(Outlet.P/'psi')^1.0937*exp(25.724*(141.5/Outlet.d60-131.5)/(Outlet.T/'degR'));
+
+#	"Volatiled Oil/Gas Ratio - NASSAR et al."
+#	Outlet.Rv = 0.5*(1+tanh((Outlet.T/'degR'-459.67)/1e-6))*(4.7e-7*(Outlet.P/'psi')^2 - 1.4e-3*(Outlet.P/'psi') + 2.3)*
+#		exp(-3.7e-4*Outlet.dg*14.696)*exp(-460*Outlet.d60G/(Outlet.T/'degR'-459.67))*Outlet.Ycg;
+
+	"Volatiled Oil/Gas Ratio - TRICA & SANTOS"
+#	Outlet.Rv/'l/m^3' = (188.6572 + 78.9191*Outlet.dg + 37.43328*Outlet.dg^2)*
+#		(Outlet.P/'psi')^(-0.20)*exp(-60.00*(141.5/Outlet.d60G-131.5)/(Outlet.T/'degR'));
+#	Outlet.Rv/'l/m^3' = (-1482.47 + 1751.75*Outlet.dg + 1058.168*Outlet.dg^2)*
+#		(Outlet.P/'psi')^(-0.187803)*exp(-5381.301*Outlet.d60G/(Outlet.T/'degR'));
+	Outlet.Rv/'l/m^3' = (-1180.3 + 2170.793*Outlet.dg + 1153.42*Outlet.dg^2)*
+		(Outlet.P/'psi')^(-0.206009)*exp(-5085.453*Outlet.d60G/(Outlet.T/'degR'));
+
+	"Equates of outlet stream for compositional variables"
+	Outlet.d60 = Inlet.d60;
+	Outlet.Tbn = Inlet.Tbn;
+	Outlet.dg = Inlet.dg;
+	Outlet.Ycg = Inlet.Ycg;
+#	Outlet.dgL = Inlet.dg;
+#	Outlet.YcgL = Inlet.Ycg;
+end
+
+Model valv_liq_ctrl as valv_liq
+	PARAMETERS
+	tau	as time_sec	(Brief="Valve time constant",Default=0);
+	
+	VARIABLES
+in	MVinput	as Real	(Brief="Input signal from controller",Default=0.5);
+
+	EQUATIONS
+	"Linear first-order dynamic behaviour"
+	(1e-3*'s'+tau)*diff(c) + c = MVinput;
+end
+
+Model valv_drygas
+	ATTRIBUTES
+	Brief 	= "Basic equations of ISA-75.01.01-2007 for valves with dry gas inlet flow";
+
+	PARAMETERS
+	rho_H2Ostd	as dens_mass	(Brief="Water density at std. cond.",Default=999.054);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	Tref		as temperature	(Brief="Reference temperature for std. cond.",Default=288.70556);
+	Pref		as pressure		(Brief="Reference pressure for std. cond.",DisplayUnit='kPa',Default=1);
+	Cv			as positive		(Brief="Valve coefficient constant US units",Unit='gal/min');
+	Kv 			as positive		(Brief="Valve coefficient constant SI units",Unit='m^3/h');
+	Av			as area			(Brief="Valve coefficient constant",DisplayUnit='cm^2');
+	Fgamma		as positive		(Brief="Adiabatic expansion coefficient",Default=0.8);
+	xT			as positive		(Brief="Pressure drop ratio factor",Default=0.7);
+
+	SET
+	Kv = Cv * ('gal/min'/'m^3/h') * sqrt('bar'/'psi');
+	Av = Cv * sqrt(rho_H2Ostd/'psi');
+	
+	VARIABLES
+in	Inlet	as strGdry;
+out	Outlet	as drygas_stream;
+	
+	fc		as fraction		(Brief="Valve inherent characteristic function",Default=0.5);
+	c 		as fraction		(Brief="Valve stem position",Default=0.5);
+	x		as positive		(Brief="Ratio of pressure drop to inlet pressure",Default=0.8);
+	xchok	as positive		(Brief="Ratio of pressure drop to inlet pressure for choked flow",Default=0.8);
+	Fexp	as positive		(Brief="Expansion factor",Default=1.5);
+	DP		as press_delta	(Brief="Pressure drop",DisplayUnit='kPa',Default=0.1);
+	
+	EQUATIONS
+	#WARNING! This model is strictly singular if the user specify the flow
+	#and make free the Outlet.P at FlowSheet section when the flow becomes choked.
+	"Pressure-flow relation"
+	Outlet.Qg*Outlet.dg*rho_AIRstd = 
+		0.5*(1+tanh((xchok-x+1e-3)/1e-6))*fc*Av*Fexp*sqrt(x*Inlet.P*Inlet.rhoG) +
+		+ 0.5*(1+tanh((x-xchok)/1e-6))*fc*Av*(2/3)*sqrt(xchok*Inlet.P*Inlet.rhoG);
+#	Outlet.Qg*Outlet.dg*rho_AIRstd = fc*Av*Fexp*sqrt(x*Inlet.P*Inlet.rhoG);
+
+	"Oil std. vol. flow Balance"
+#	Inlet.Qg*Inlet.Rv = Outlet.Qg*(Outlet.Rcg + Outlet.Rv);
+	Inlet.Rv = Outlet.Rv;
+#	Outlet.Rcg = (Inlet.Qg/Outlet.Qg)*Inlet.Rv - Outlet.Rv;
+#	Outlet.Rcg = 0.1*'l/m^3';
+
+	"Gas std. vol. flow Balance"
+#	Inlet.Qg = Outlet.Qg;
+#	Inlet.Qg = Outlet.Qg*(1 + Outlet.Rcg*Outlet.Rs);
+	Inlet.Qg = Outlet.Qg;
+#	1.0 = Outlet.Qg/Inlet.Qg*(1 + Outlet.Rcg*Outlet.Rs);
+
+	"Energy balance: Isenthalpic expansion"
+#	Inlet.dg*rho_AIRstd*Inlet.hG + Inlet.Rcg*Inlet.d60*rho_H2Ostd*Inlet.hO
+#		= Outlet.dg*rho_AIRstd*Outlet.hG + Outlet.Rcg*Outlet.d60*rho_H2Ostd*Outlet.hO;
+#	Inlet.Qg*Inlet.dg*rho_AIRstd*Inlet.hG
+#		= Outlet.Qg*(Outlet.dg*rho_AIRstd*Outlet.hG + Outlet.Rcg*Outlet.d60*rho_H2Ostd*Outlet.hO);
+	Inlet.hG = Outlet.hG;
+#	Inlet.Qg*Inlet.dg*rho_AIRstd*Inlet.hG = Outlet.Qg*Outlet.dg*rho_AIRstd*Outlet.hG;
+
+	"Linear inherent characteristic function"
+	fc = c;
+
+	"Pressure drop"
+	DP = Inlet.P - Outlet.P;
+	
+	"Pressure drop ratio"
+	x*Inlet.P = DP;
+#	x = 0.5*(1+tanh((xchok-x+1e-3)/1e-6))*DP/Inlet.P +
+#		0.5*(1+tanh((x-xchok)/1e-6))*xchok;
+	
+	"Pressure drop at choked flow"
+	xchok = Fgamma*xT;
+	
+	"Expansion factor"
+	Fexp = 1-x/(3*Fgamma*xT);
+#	Fexp = 0.5*(1+tanh((xchok-x+1e-3)/1e-6))*(1-x/(3*Fgamma*xT))
+#		+ 0.5*(1+tanh((x-xchok)/1e-6))*(2/3);
+	
+	"Equates of outlet stream compositional variables"
+	Outlet.d60 = Inlet.d60;
+	Outlet.Tbn = Inlet.Tbn;
+	Outlet.dg = Inlet.dg;
+	Outlet.Ycg = Inlet.Ycg;
+end
+
+Model valv_drygas_ctrl as valv_drygas
+	PARAMETERS
+	tau	as time_sec	(Brief="Valve time constant",Default=0);
+	
+	VARIABLES
+in	MVinput	as Real	(Brief="Input signal from controller",Default=0.5);
+
+	EQUATIONS
+	"Linear first-order dynamic behaviour"
+	(1e-3*'s'+tau)*diff(c) + c = MVinput;
+
+end
+
+Model valv_gas
+	ATTRIBUTES
+	Brief 	= "Basic equations of ISA-75.01.01-2007 for valves with gas flow";
+
+	PARAMETERS
+	rho_H2Ostd	as dens_mass	(Brief="Water density at std. cond.",Default=999.054);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	Tref		as temperature	(Brief="Reference temperature for std. cond.",Default=288.70556);
+	Pref		as pressure		(Brief="Reference pressure for std. cond.",DisplayUnit='kPa',Default=1);
+	Cv			as positive		(Brief="Valve coefficient constant US units",Unit='gal/min');
+	Kv 			as positive		(Brief="Valve coefficient constant SI units",Unit='m^3/h');
+	Av			as area			(Brief="Valve coefficient constant",DisplayUnit='cm^2');
+	Fgamma		as positive		(Brief="Adiabatic expansion coefficient",Default=0.8);
+	xT			as positive		(Brief="Pressure drop ratio factor",Default=0.7);
+
+	SET
+	Kv = Cv * ('gal/min'/'m^3/h') * sqrt('bar'/'psi');
+	Av = Cv * sqrt(rho_H2Ostd/'psi');
+	
+	VARIABLES
+in	Inlet	as strG;
+out	Outlet	as gas_stream;
+	
+	fc			as fraction		(Brief="Valve inherent characteristic function",Default=0.5);
+	c 			as fraction		(Brief="Valve stem position",Default=0.5);
+	x			as positive		(Brief="Ratio of pressure drop to inlet pressure",Default=0.8);
+	xchok		as positive		(Brief="Ratio of pressure drop to inlet pressure for choked flow",Default=0.8);
+	Fexp		as positive		(Brief="Expansion factor",Default=1.5);
+	DP			as press_delta	(Brief="Pressure drop",DisplayUnit='kPa',Default=0.1);
+
+	Rveq		as positive	(Brief="Volatiled oil-gas ratio at equilibrium",Unit='l/m^3',Default=0.05);
+	SumInletOil	as positive	(Brief="Sum of inlet streams oil std. vol. flow",Unit='m^3/d',Default=1e2);
+	Ounbal		as Real		(Brief="Oil std. vol. unbalance",Unit='m^3/d',Default=0);
+
+	EQUATIONS
+	#WARNING! This model is strictly singular if the user specify the flow
+	#and make free the Outlet.P at FlowSheet section when the flow becomes choked.
+	"Pressure-flow relation"
+	Outlet.Qg*Outlet.dg*rho_AIRstd = 
+		0.5*(1+tanh((xchok-x+1e-3)/1e-6))*fc*Av*Fexp*sqrt(x*Inlet.P*Inlet.rhoG) +
+		+ 0.5*(1+tanh((x-xchok)/1e-6))*fc*Av*(2/3)*sqrt(xchok*Inlet.P*Inlet.rhoG);
+#	Outlet.Qg*Outlet.dg*rho_AIRstd = fc*Av*Fexp*sqrt(x*Inlet.P*Inlet.rhoG);
+
+#	"Oil std. vol. flow Balance"
+#	Inlet.Qg*Inlet.Rv + Inlet.Qc = Outlet.Qg*Outlet.Rv + Outlet.Qc;
+
+	"Sum of inlet streams oil std. vol."
+	SumInletOil = Inlet.Qg*Inlet.Rv + Inlet.Qc;
+
+	"Oil std. vol. unbalance"
+	Ounbal = Outlet.Qg*Rveq - (Inlet.Qg*Inlet.Rv + Inlet.Qc);
+
+	"Std. vol. balance for condensed oil"
+	Outlet.Qc = 0.5*(1+tanh(-Ounbal/'m^3/d'/1e-6))*(-Ounbal);
+#	Outlet.Qc = 0.5*(1+tanh(-Ounbal/'m^3/d'/1e-2))*(-Ounbal);
+
+	"Std. vol. balance for volatiled oil-gas ratio"
+	Outlet.Qg*Outlet.Rv = 0.5*(1+tanh(Ounbal/'m^3/d'/1e-6))*SumInletOil
+		+ 0.5*(1+tanh(-Ounbal/'m^3/d'/1e-6))*Outlet.Qg*Rveq;
+#	Outlet.Qg*Outlet.Rv = 0.5*(1+tanh(Ounbal/'m^3/d'/1e-2))*SumInletOil
+#		+ 0.5*(1+tanh(-Ounbal/'m^3/d'/1e-2))*Outlet.Qg*Rveq;
+
+	"Gas std. vol. flow Balance"
+	Inlet.Qg + Inlet.Qc*Inlet.Rs = Outlet.Qg + Outlet.Qc*Outlet.Rs;
+
+	"Energy balance: Isenthalpic expansion"
+	Inlet.Qg*Inlet.dg*rho_AIRstd*Inlet.hG + Inlet.Qc*Inlet.d60L*rho_H2Ostd*Inlet.hO
+		= Outlet.Qg*Outlet.dg*rho_AIRstd*Outlet.hG + Outlet.Qc*Outlet.d60L*rho_H2Ostd*Outlet.hO;
+
+	"Linear inherent characteristic function"
+	fc = c;
+
+	"Pressure drop"
+	DP = Inlet.P - Outlet.P;
+	
+	"Pressure drop ratio"
+	x*Inlet.P = DP;
+#	x = 0.5*(1+tanh((xchok-x+1e-3)/1e-6))*DP/Inlet.P +
+#		0.5*(1+tanh((x-xchok)/1e-6))*xchok;
+	
+	"Pressure drop at choked flow"
+	xchok = Fgamma*xT;
+	
+	"Expansion factor"
+	Fexp = 1-x/(3*Fgamma*xT);
+#	Fexp = 0.5*(1+tanh((xchok-x+1e-3)/1e-6))*(1-x/(3*Fgamma*xT))
+#		+ 0.5*(1+tanh((x-xchok)/1e-6))*(2/3);
+
+	"Solution Gas/Oil Ratio - VAZQUEZ & BEGGS"
+	Outlet.Rs/'ft^3/bbl' = 0.0362*(Outlet.dgL*(1 + 5.912e-5*(141.5/Outlet.d60L-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+		*(Outlet.P/'psi')^1.0937*exp(25.724*(141.5/Outlet.d60L-131.5)/(Outlet.T/'degR'));
+
+#	"Volatiled Oil/Gas Ratio - NASSAR et al."
+#	Rveq = 0.5*(1+tanh((Outlet.T/'degR'-459.67)/1e-6))*(4.7e-7*(Outlet.P/'psi')^2 - 1.4e-3*(Outlet.P/'psi') + 2.3)*
+#		exp(-3.7e-4*Outlet.dg*14.696)*exp(-460*Outlet.d60G/(Outlet.T/'degR'-459.67))*Outlet.Ycg;
+
+	"Volatiled Oil/Gas Ratio - TRICA & SANTOS"
+#	Rveq/'l/m^3' = (-1482.47 + 1751.75*Outlet.dg + 1058.168*Outlet.dg^2)*
+#		(Outlet.P/'psi')^(-0.187803)*exp(-5381.301*Outlet.d60/(Outlet.T/'degR'));
+	Rveq/'l/m^3' = (-1180.3 + 2170.793*Outlet.dg + 1153.42*Outlet.dg^2)*
+		(Outlet.P/'psi')^(-0.206009)*exp(-5085.453*Outlet.d60/(Outlet.T/'degR'));
+
+	"Equates of outlet stream compositional variables"
+	Outlet.d60 = Inlet.d60;
+	Outlet.Tbn = Inlet.Tbn;
+	Outlet.dg = Inlet.dg;
+	Outlet.Ycg = Inlet.Ycg;
+end
+
+Model valv_gas_ctrl as valv_gas
+	PARAMETERS
+	tau	as time_sec	(Brief="Valve time constant",Default=0);
+	
+	VARIABLES
+in	MVinput	as Real	(Brief="Input signal from controller",Default=0.5);
+
+	EQUATIONS
+	"Linear first-order dynamic behaviour"
+	(1e-3*'s'+tau)*diff(c) + c = MVinput;
+end
+
+Model valv_water
+	PARAMETERS
+	rho_H2Ostd	as dens_mass	(Brief="Water density at std. cond.",Default=999.054);
+	Cv			as positive		(Brief="Valve coefficient constant US units",Unit='gal/min');
+	Kv 			as positive		(Brief="Valve coefficient constant SI units",Unit='m^3/h');
+	Av 			as area			(Brief="Valve coefficient constant",DisplayUnit='cm^2');
+	FL			as fraction		(Brief="Liquid pressure recovery factor",Default=0.91);
+	
+	SET
+	Kv = Cv * ('gal/min'/'m^3/h') * sqrt('bar'/'psi');
+	Av = Cv * sqrt(rho_H2Ostd/'psi');
+	
+	VARIABLES
+in	Inlet	as strW;
+out	Outlet	as water_stream;	
+	
+	fc			as fraction		(Brief="Valve inherent characteristic function",Default=0.5);
+	c 			as fraction		(Brief="Valve stem position",Default=0.5);
+	FF			as fraction		(Brief="Liquid critical pressure ratio factor",Default=0.96);
+	DP			as press_delta	(Brief="Pressure drop",DisplayUnit='kPa',Default=0.1);
+	DPchok		as press_delta	(Brief="Pressure drop at choked flow",DisplayUnit='kPa',Default=0.05);
+	PvL			as pressure		(Brief="Liquid absolute vapour pressure",DisplayUnit='kPa',Default=80);
+	PpcL		as pressure		(Brief="Liquid absolute thermodynamic pseudo-critical pressure",DisplayUnit='kPa',Default=30);
+	
+	EQUATIONS
+	#WARNING! This model is strictly singular if the user specify the flow
+	#and make free the Outlet.P at FlowSheet section when the flow becomes choked.
+	"Pressure-flow relation"
+	Inlet.Qw*Inlet.rho_Wstd =
+		0.5*(1+tanh(((DPchok-DP)/'kPa'+1e-3)/1e-6))*fc*Av*sqrt(Inlet.rhoW*DP) +
+		0.5*(1+tanh((DP-DPchok)/'kPa'/1e-6))*fc*Av*sqrt(Inlet.rhoW*DPchok);
+	
+	"Oil std. vol. flow balance"
+	Inlet.TOG = Outlet.TOG;
+	
+	"Water std. vol. flow balance"
+	Inlet.Qw = Outlet.Qw;
+	
+	"Water salt mass balance"
+	Inlet.ws = Outlet.ws;
+
+	"Energy balance: Isenthalpic expansion"
+	Outlet.hW = Inlet.hW;
+	
+	"Pressure Drop"
+	DP = Inlet.P - Outlet.P;
+	
+	"Pressure drop at choked flow"
+	DPchok = FL^2*(Inlet.P - FF*PvL);
+
+	"Liquid critical pressure ratio factor"
+#	FF = 0.96 - 0.28*sqrt(PvL/PpcL);
+	FF = 0.5*(1+tanh((PvL-PpcL)/'bar'/1e-6))*(0.96 - 0.28) +
+		0.5*(1+tanh((PpcL-PvL)/'bar'/1e-6))*(0.96 - 0.28*sqrt(PvL/PpcL));
+
+	"Liquid vapour pressure - Antoine equation for pure water"
+	log(PvL/'bar') = 5.11564 - 1687.537/(Inlet.T/'K'+230.17-273.15);
+
+	"Liquid Absolute thermodynamic pseudo-critical pressure - Pure water"
+	PpcL = 220.64*'bar';
+	
+	"Linear inherent characteristic function"
+	fc = c;
+
+	"Equates of outlet stream for compositional variables"
+	Outlet.d60 = Inlet.d60;
+	Outlet.Tbn = Inlet.Tbn;
+end
+
+Model valv_water_ctrl as valv_water
+	PARAMETERS
+	tau	as time_sec	(Brief="Valve time constant",Default=0);
+	
+	VARIABLES
+in	MVinput	as Real	(Brief="Input signal from controller",Default=0.5);
+
+	EQUATIONS
+	"Linear first-order dynamic behaviour"
+	(1e-3*'s'+tau)*diff(c) + c = MVinput;
+end
+
+Model pump_liq
+	ATTRIBUTES
+	Brief 	= "Basic equations for pumps for liquid streams only";
+	Info 	= 
+		"Assumptions:
+			- Isothermal compression (Inlet.T  = Outlet.T)
+			- Negligible work applied to the system (Inlet.h = Outlet.h)";	
+
+	PARAMETERS
+	g			as constant 	(Brief="Gravity acceleration",Default=9.80665,Unit='m/s^2');	
+	rho_H2Ostd	as dens_mass	(Brief="Water density at std. cond.",Default=999.054);
+	h0			as positive		(Brief="Shut-off head",Unit='m',Default=30);
+	A 			as positive		(Brief="Pressure-flow pump relation coefficient",Unit='s^2/m^5',Default=1e-5);
+	
+	VARIABLES
+in	Inlet	as strL;
+out	Outlet	as liquid_stream;	
+
+	Win		as power		(Brief="Pump power",DisplayUnit='kW',Default=100);
+	DP		as press_delta	(Brief="Pressure rise",DisplayUnit='kPa',Default=10);
+	
+	EQUATIONS
+	#WARNING! This model is strictly singular if the user specify the flow
+	#and make free the Outlet.P at FlowSheet section when the flow becomes choked.
+	"Pressure-flow relation"
+	DP/(Inlet.rhoL*g) = 
+		h0 - A*(Inlet.Qf*((1-Inlet.BSW)*Inlet.d60*rho_H2Ostd + Inlet.BSW*Inlet.rho_Wstd)/Inlet.rhoL)^2;
+	
+	"Liquid std vol. balance"
+	Outlet.Qf = Inlet.Qf;
+
+	"Gas std. vol. balance"
+	Outlet.Rs = Inlet.Rs;
+
+	"Water std. vol. balance"
+	Outlet.BSW = Inlet.BSW;
+	
+	"Water salt mass balance"
+	Outlet.ws = Inlet.ws;
+
+	"Energy balance: Isothermal compression"
+	Outlet.T = Inlet.T;
+	
+	"Pressure Rise"
+	DP = Outlet.P - Inlet.P;
+	
+	"Power supplied"
+	Win = DP*(Inlet.Qf*((1-Inlet.BSW)*Inlet.d60*rho_H2Ostd + Inlet.BSW*Outlet.rho_Wstd)/Inlet.rhoL);
+
+	"Equates of outlet stream for compositional variables"
+	Outlet.d60 = Inlet.d60;
+	Outlet.Tbn = Inlet.Tbn;
+	Outlet.dg = Inlet.dg;
+	Outlet.Ycg = Inlet.Ycg;
+end
+
+Model pump_water
+	ATTRIBUTES
+	Brief 	= "Basic equations for pumps for liquid water brine streams only";
+	Info 	= 
+		"Assumptions:
+			- Isothermal compression (Inlet.T  = Outlet.T)
+			- Negligible work applied to the system (Inlet.h = Outlet.h)";
+
+	PARAMETERS
+	g			as constant 	(Brief="Gravity acceleration",Default=9.80665,Unit='m/s^2');	
+	rho_H2Ostd	as dens_mass	(Brief="Water density at std. cond.",Default=999.054);
+	h0			as positive		(Brief="Shut-off head",Unit='m',Default=30);
+	A 			as positive		(Brief="Pressure-flow pump relation coefficient",Unit='s^2/m^5',Default=1e-5);
+	
+	VARIABLES
+in	Inlet	as strW			(Brief="Inlet stream");
+out	Outlet	as water_stream	(Brief="Outlet stream");	
+
+	Win		as power		(Brief="Pump power",DisplayUnit='kW',Default=100);
+	DP		as press_delta	(Brief="Pressure rise",DisplayUnit='kPa',Default=10);
+	
+	EQUATIONS
+	#WARNING! This model is strictly singular if the user specify the flow
+	#and make free the Outlet.P at FlowSheet section when the flow becomes choked.
+	"Pressure-flow relation"
+	DP/(Inlet.rhoW*g) = h0 - A*(Inlet.Qw*Outlet.rho_Wstd/Inlet.rhoW)^2;
+	
+	"Liquid std vol. flow balance"
+	Outlet.Qw = Inlet.Qw;
+
+	"Oil std. vol. flow balance"
+	Outlet.TOG = Inlet.TOG;
+	
+	"Water salt mass balance"
+	Outlet.ws = Inlet.ws;
+
+	"Energy balance: isothermal compression"
+	Outlet.T = Inlet.T;
+	
+	"Pressure Rise"
+	DP = Outlet.P - Inlet.P;
+
+	"Power supplied"
+	Win = DP*Inlet.Qw*Outlet.rho_Wstd/Inlet.rhoW;
+	
+	"Equates of outlet stream for compositional variables"
+	Outlet.d60 = Inlet.d60;
+	Outlet.Tbn = Inlet.Tbn;
+end

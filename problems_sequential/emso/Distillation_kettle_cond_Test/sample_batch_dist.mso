@@ -1,0 +1,105 @@
+#*-------------------------------------------------------------------
+* EMSO Model Library (EML) Copyright (C) 2004 - 2007 ALSOC.
+*
+* This LIBRARY is free software; you can distribute it and/or modify
+* it under the therms of the ALSOC FREE LICENSE as available at
+* http://www.enq.ufrgs.br/alsoc.
+*
+* EMSO Copyright (C) 2004 - 2007 ALSOC, original code
+* from http://www.rps.eng.br Copyright (C) 2002-2004.
+* All rights reserved.
+*
+* EMSO is distributed under the therms of the ALSOC LICENSE as
+* available at http://www.enq.ufrgs.br/alsoc.
+*
+*--------------------------------------------------------------------
+* Sample file for model Diff_Dist
+*--------------------------------------------------------------------
+* 
+* This sample file needs VRTherm DEMO (www.vrtech.com.br) to run.
+*
+*----------------------------------------------------------------------
+* Author: Maurício Carvalho Maciel
+* $Id: sample_batch_dist.mso 633 2008-09-24 00:26:30Z bicca $
+*--------------------------------------------------------------------*#
+
+using "stage_separators/batch_dist";
+using "stage_separators/column";
+FlowSheet TesteBatch
+	
+	PARAMETERS
+	PP	as Plugin(Brief="Physical Properties",
+		Type="PP",
+		Components = [ "isobutane", "benzene" ],
+		LiquidModel = "PR",
+		VapourModel = "PR"
+	);
+	NComp	as Integer;
+
+	VARIABLES
+	To      as Real;
+	ho		as Real;
+	xo      as Real;
+	Qr 		as Real;
+	Fout    as Real;
+	tal     as Real;
+
+	SET
+	NComp = PP.NumberOfComponents;
+	
+	DEVICES
+	batch 	as Diff_Dist;
+	reflux 	as liquid_stream;
+	feed	as source;
+	Q		as energy_source;
+	
+	CONNECTIONS
+	reflux to batch.Inlet;
+	feed.Outlet to batch.InletL;
+	Q.OutletQ to batch.InletQ;
+
+	EQUATIONS
+	if batch.Level > 1E-2 then
+		batch.OutletV.F = Fout * 'kmol/h';
+		batch.InletQ.Q = Qr  * 'kJ/h';
+	else
+		batch.OutletV.F = 0 * 'kmol/h';
+		batch.InletQ.Q = 0 * 'kJ/h';
+	end
+	
+    batch.tal = tal;
+	
+	SPECIFY
+	Qr = 3.7743e6;
+	Fout = 130;
+	To = 298;
+	ho = 2.5 ;
+	xo = 0.2;
+	tal = 1000;
+	
+	reflux.F = 10  * 'kmol/h';
+	reflux.T = 328 * 'K';
+	reflux.P = 180 * 'kPa';
+	reflux.z = [0.5, 0.5];
+	
+	feed.F = 0 * 'kmol/h';
+	feed.T = 328 * 'K';
+	feed.P = 180 * 'kPa';
+	feed.Composition= [0.9, 0.1];
+
+	
+	SET
+	batch.V = 5 * 'm^3';
+	batch.Across = 1 * 'm^2';
+	
+	INITIAL
+	batch.T = To *'K';
+	batch.Level = ho * 'm';
+	batch.x(2) = xo;
+	
+	OPTIONS
+	TimeEnd = 1;
+	TimeStep = 0.01;
+	TimeUnit = 's';
+	#InitialFile ="TesteBatch.rlt";
+end

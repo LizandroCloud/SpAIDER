@@ -1,0 +1,37 @@
+
+#
+# $Log:        testss.dat,v $
+# Revision 2.0  2004/04/25  23:40  arge
+# DASSLC version
+#
+
+rank 3
+option savefile testss.save
+option !istall !stol
+option maxlen 3000
+option maxorder 5
+option maxconvfail 50
+#option maxerrorfail 10
+print
+
+option damps 0.9
+debug newton
+
+#option stepsize 1e-5
+option rtol 1e-6 atol 1e-8
+
+#data value 0-1
+#rtol 1e-12 atol 1e-12
+#endata
+
+#data value 2-3
+#rtol 1e-12 atol 1e-12
+#endata
+
+#debug matrix
+
+# some default options
+#option mtype userdense  
+#option linearmode direct
+#option sparsemode eval
+#option dampi 1.0 damps 1.0

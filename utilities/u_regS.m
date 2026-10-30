@@ -1,5 +1,5 @@
 function [u] = u_regS(t,ts,w,ks,ns)
-lambd=0.01;
+lambd=1e-5;
 un = [];
 %for t=1:250
    % w = [ 0.5 -0.4 0.3 0.1 -0.2 0.8 -0.5 0.6];

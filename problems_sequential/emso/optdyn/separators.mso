@@ -1,0 +1,726 @@
+using "tristream";
+
+Model triphase_separator
+	PARAMETERS
+	pi			as constant     (Brief="Pi number",Default=3.141592);
+	g			as constant  	(Brief="Gravity acceleration",Default=9.80665,Unit='m/s^2');
+	rho_H2Ostd	as dens_mass	(Brief="Water Density at std. cond.",Default=999.0054);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	Tref		as temperature	(Brief="Reference temperature for std. cond.",Default=288.70556);
+	Pref		as pressure		(Brief="Reference pressure for std. cond.",DisplayUnit='kPa',Default=1);
+	D			as length       (Brief="Diameter of Separator",Default=3.0);
+	LCS			as length       (Brief="Length of Separation Chamber (CS)",Default=10.0);
+	LCL     	as length       (Brief="Length of Lights Chamber (CL)",Default=2.0);
+	Lweir   	as length       (Brief="Length of Weir");
+	hweir   	as length       (Brief="Height of Weir",Default=1.5);
+	V			as volume       (Brief="Total Volume");	
+	TOGinf		as positive		(Brief="Minimum TOG achieved parameter",Unit='ml/m^3',Default=20);
+	tau			as time_sec		(Brief="TOG residence time decay",Default=0.166667);
+	
+	VARIABLES
+in  Inlet    	as str3ph;
+out OutletL		as liquid_stream;
+out OutletW		as water_stream;
+out OutletG		as drygas_stream;
+
+	VLCSstd		as positive		(Brief="Std. Volume Hold-up at Ligth Phase in CS",Unit='m^3',Default=100);
+	VLCLstd    	as positive		(Brief="Std. Volume Hold-up at Light Phase in CL",Unit='m^3',Default=20);
+	VWCSstd    	as positive		(Brief="Water Phase Std. Volume Hold-up in CS",Unit='m^3',Default=50);
+	VGstd      	as positive		(Brief="Gas Phase Std. Volume Hold-up",Unit='m^3',Default=5e3);
+	BSWLCS		as fraction		(Brief="BSW at Ligth Phase in CS",Default=0.5);
+	E			as energy		(Brief="Energy Hold-up",DisplayUnit='MJ',Default=5e6);
+	LevelCS     as length		(Brief="Total Level in CS",Default=2.2);
+	LevelWCS   	as length		(Brief="Water Phase Level in CS",Default=1.0);
+	LevelLCS    as length		(Brief="Oil Phase Level in CS",Default=1.2);
+	LevelCL    	as length		(Brief="Oil Phase Level in CL",Default=0.7);
+	rhoLCS		as dens_mass	(Brief="Liquid mass density at CS",Default=900);
+	Qweir   	as positive 	(Brief="Oil Phase Weir Std. Vol. Flow Rate",Unit='m^3/d',Default=1e4);
+	effWL		as fraction		(Brief="Water Removal Efficiency from Oil-Water Emulsion Phase",Default=0.2);
+	effLW		as fraction		(Brief="Light phase removal efficiency from Water Phase",Default=0.999);
+	
+	SET
+	V = (LCS + LCL)*pi*(D^2)/4;
+	Lweir = 2*sqrt(hweir*(D - hweir));
+
+	EQUATIONS
+	"Oil std. vol. balance at oil-emulsion (light) phase in separation chamber"
+	diff(VLCSstd*(1-BSWLCS) + VGstd*OutletG.Rv) = 
+		Inlet.Qf*(1-Inlet.BSW)*effLW + Inlet.Qg*Inlet.Rv 
+		- Qweir*(1-BSWLCS) - OutletG.Qg*OutletG.Rv;
+
+	"Gas std. vol. balance"
+	diff((VLCSstd*(1-BSWLCS)+VLCLstd*(1-OutletL.BSW))*OutletL.Rs + VGstd) = 
+		Inlet.Qf*(1-Inlet.BSW)*effLW*Inlet.Rs + Inlet.Qg
+		- OutletG.Qg - OutletL.Qf*(1-OutletL.BSW)*OutletL.Rs;
+
+	"Water std. vol. balance at oil-emulsion (light) phase in separation chamber"
+	diff(VLCSstd*BSWLCS) = Inlet.Qf*Inlet.BSW*(1-effWL) 
+		- Qweir*BSWLCS;
+
+	"Water std. vol. balance at water phase in separation chamber"
+	diff(VWCSstd) = Inlet.Qf*Inlet.BSW*effWL - OutletW.Qw;
+
+	"Water salt mass balance in separation chamber"
+	diff((VWCSstd+VLCSstd*BSWLCS)*OutletW.rho_Wstd*OutletW.ws) = Inlet.Qf*Inlet.BSW*Inlet.rho_Wstd*Inlet.ws
+		- OutletW.Qw*OutletW.rho_Wstd*OutletW.ws - Qweir*BSWLCS*OutletW.rho_Wstd*OutletW.ws;
+
+	"Height constraint in separation chamber"
+	LevelCS = LevelWCS + LevelLCS;
+
+	"Liquid volume hold-up in separation chamber"
+	VWCSstd*OutletL.Bw + VLCSstd*((1-BSWLCS)*OutletL.Bo + BSWLCS*OutletL.Bw) 
+		= LCS*(D^2)/4*(acos((1-2*LevelCS/D)) - (1-2*LevelCS/D)*sin(acos(1-2*LevelCS/D)*'rad'));
+
+	"Water phase volume hold-up in separation chamber"
+	VWCSstd*OutletL.Bw = LCS*(D^2)/4*(acos((1-2*LevelWCS/D)) - (1-2*LevelWCS/D)*sin(acos(1-2*LevelWCS/D)*'rad'));
+
+	"Liquid volume hold-up in lights chamber"
+	VLCLstd*((1-OutletL.BSW)*OutletL.Bo + OutletL.BSW*OutletL.Bw) = 
+		LCL*(D^2/4)*(acos((1-2*LevelCL/D)) - (1-2*LevelCL/D)*sin(acos(1-2*LevelCL/D)*'rad'));
+	
+	"Water removal efficiency from light phase"	#PEGAR DEPOIS A REFERÊNCIA
+	effWL = 0.5486 - 0.2675*(LevelWCS/'m') - 0.3626*(Inlet.Qf*(1-Inlet.BSW)*Inlet.Bo/'m^3/s') 
+		+ 0.1356*(LevelWCS/'m')*(Inlet.Qf*(1-Inlet.BSW)*Inlet.Bo/'m^3/s')
+		-0.0747*(LevelWCS/'m') + 0.089*(Inlet.Qf*(1-Inlet.BSW)*Inlet.Bo/'m^3/s')^2;
+
+	"TOG correlation for OutletW"
+#	OutletW.TOG = TOGinf + (1000*'g/m^3'-TOGinf)*
+#		exp(-(VWCS/(Inlet.Qf*Inlet.BSW*Inlet.rho_Wstd/rhoW)/tau));
+	OutletW.TOG = TOGinf + (1000*'ml/m^3'-TOGinf)*
+		exp(-((VWCSstd*OutletL.Bw)/(Inlet.Qf*Inlet.BSW*Inlet.Bw))/tau);
+
+#	OBS:	First was attempted to use correlation cited by NUNES et al., Chapter 13, Section 13.3.7, 
+#			This equation do not describe the assymtoptic behavior of BSW for long residence times. 
+#			Because of this, the correlation above has been suggested, with parameter TOGinf and lbd
+#			to be estimated.
+	
+	"Oil removal efficiency from water phase"
+	Inlet.Qf*(1-Inlet.BSW)*effLW = Inlet.Qf*(1-Inlet.BSW) - OutletW.Qw*OutletW.TOG;
+		
+	"Weir std. vol. flow rate"
+	Qweir*OutletL.Bo = 0.5*(1 + tanh((LevelCS/'m' - (hweir/'m' + 1e-3))/1e-4))*
+		(24.88*sqrt(2*g)*(Lweir - 0.2*(abs(LevelCS - hweir)))*(abs(LevelCS - hweir))^1.5);
+
+	"liquid mass density in separation chamber"
+	rhoLCS*((1-BSWLCS)*OutletL.Bo + BSWLCS*OutletL.Bw) = 
+		(1-BSWLCS)*OutletL.d60*rho_H2Ostd + BSWLCS*OutletL.rho_Wstd;
+
+	"Oil std. vol. balance in lights chamber"
+	0.5*(1+tanh((hweir/'m'-(LevelCL/'m'+1e-3))/1e-4))*(diff(VLCLstd*(1-OutletL.BSW)) - (Qweir*(1-BSWLCS) - OutletL.Qf*(1-OutletL.BSW)))
+		+ 0.5*(1+tanh((LevelCL/'m'-hweir/'m')/1e-4))*(diff(VLCLstd*(1-OutletL.BSW)) - diff(VLCSstd*(1-BSWLCS))) = 0*'m^3/s';
+
+	"Water std. vol. balance in lights chamber"
+	0.5*(1+tanh((hweir/'m'-(LevelCL/'m'+1e-3))/1e-4))*(diff(VLCLstd*OutletL.BSW) - (Qweir*BSWLCS - OutletL.Qf*OutletL.BSW))
+		+ 0.5*(1+tanh((LevelCL/'m'-hweir/'m')/1e-4))*(diff(VLCLstd*OutletL.BSW) - diff(VLCSstd*BSWLCS)) = 0*'m^3/s';
+
+	"Water salt mass balance in lights chamber"
+	0.5*(1+tanh((hweir/'m'-(LevelCL/'m'+1e-3))/1e-4))*(diff(VLCLstd*OutletL.BSW*OutletL.rho_Wstd*OutletL.ws) - (Qweir*BSWLCS*OutletW.rho_Wstd*OutletW.ws - OutletL.Qf*OutletL.BSW*OutletL.rho_Wstd*OutletL.ws))
+		+ 0.5*(1+tanh((LevelCL/'m'-hweir/'m')/1e-4))*(diff(VLCLstd*OutletL.BSW*OutletL.rho_Wstd*OutletL.ws) - diff(VLCSstd*BSWLCS*OutletW.rho_Wstd*OutletW.ws)) = 0*'kg/s';
+
+	"Volume constraint"
+	V = VGstd*OutletG.Bg + VWCSstd*OutletL.Bw 
+		+ VLCSstd*((1-BSWLCS)*OutletL.Bo + BSWLCS*OutletL.Bw) 
+		+ VLCLstd*((1-OutletL.BSW)*OutletL.Bo + OutletL.BSW*OutletL.Bw);
+
+	"Energy balance"
+	diff(E) = Inlet.Qf*((1-Inlet.BSW)*effLW*Inlet.d60*rho_H2Ostd*Inlet.hO + Inlet.BSW*Inlet.rho_Wstd*Inlet.hW)
+		+ Inlet.Qg*Inlet.dg*rho_AIRstd*Inlet.hG
+		- OutletL.Qf*((1-OutletL.BSW)*OutletL.d60*rho_H2Ostd*OutletL.hO + OutletL.BSW*OutletL.rho_Wstd*OutletL.hW)
+		- OutletG.Qg*rho_AIRstd*OutletG.dg*OutletG.hG - OutletW.Qw*OutletW.rho_Wstd*OutletW.hW;
+		
+	"Energy hold-Up"
+	E = VLCSstd*((1-BSWLCS)*OutletL.d60*rho_H2Ostd*OutletL.hO + BSWLCS*OutletL.rho_Wstd*OutletL.hW)
+		+ VLCLstd*((1-OutletL.BSW)*OutletL.d60*rho_H2Ostd*OutletL.hO + OutletL.BSW*OutletL.rho_Wstd*OutletL.hW)
+		+ VWCSstd*OutletL.rho_Wstd*OutletW.hW + VGstd*OutletG.dg*rho_AIRstd*OutletG.hG - OutletG.P*V;
+
+	"Property mixing rule for oil specific gravity (std. vol. balance)"
+#	diff((VLCSstd*(1-BSWLCS)+VLCLstd*(1-OutletL.BSW))*OutletL.d60) = 
+#		Inlet.Qf*(1-Inlet.BSW)*effLW*Inlet.d60 - OutletL.Qf*(1-OutletL.BSW)*OutletL.d60;
+	diff((VLCSstd*(1-BSWLCS)+VLCLstd*(1-OutletL.BSW))*OutletL.d60 + VGstd*OutletG.Rv*OutletG.d60) = 
+		Inlet.Qf*(1-Inlet.BSW)*effLW*Inlet.d60
+		+ Inlet.Qg*Inlet.Rv*Inlet.d60G
+		- OutletL.Qf*(1-OutletL.BSW)*OutletL.d60
+		- OutletG.Qg*OutletG.Rv*OutletG.d60;
+
+	"Property mixing rule for Tbn by means of Watson K-factor (std. vol. balance)"
+#	diff((VLCSstd*(1-BSWLCS)+VLCLstd*(1-OutletL.BSW))*(OutletL.Tbn/'degR')^(1/3)) = 
+#		Inlet.Qf*(1-Inlet.BSW)*effLW*(Inlet.Tbn/'degR')^(1/3)
+#		- OutletL.Qf*(1-OutletL.BSW)*(OutletL.Tbn/'degR')^(1/3);
+	diff((VLCSstd*(1-BSWLCS)+VLCLstd*(1-OutletL.BSW))*(OutletL.Tbn/'degR')^(1/3) + VGstd*OutletG.Rv*(OutletG.Tbn/'degR')^(1/3)) = 
+		Inlet.Qf*(1-Inlet.BSW)*effLW*(Inlet.Tbn/'degR')^(1/3)
+		+ Inlet.Qg*Inlet.Rv*(Inlet.TbnG/'degR')^(1/3)
+		- OutletL.Qf*(1-OutletL.BSW)*(OutletL.Tbn/'degR')^(1/3)
+		- OutletG.Qg*OutletG.Rv*(OutletG.Tbn/'degR')^(1/3);
+
+	"Property mixing rule for gas specific gravity (std vol. balance)"
+#	diff(VGstd*OutletG.dg) = Inlet.Qg*Inlet.dg - OutletG.Qg*OutletG.dg;
+	diff((VLCSstd*(1-BSWLCS)+VLCLstd*(1-OutletL.BSW))*OutletL.Rs*OutletL.dg + VGstd*OutletG.dg) = 
+		Inlet.Qf*(1-Inlet.BSW)*effLW*Inlet.Rs*Inlet.dgL
+		+ Inlet.Qg*Inlet.dg
+		- OutletL.Qf*(1-OutletL.BSW)*OutletL.Rs*OutletL.dg
+		- OutletG.Qg*OutletG.dg;
+
+	"Property mixing rule for Condensate/Gas yield (std. vol. balance)"
+#	diff(VGstd*OutletG.Ycg) = Inlet.Qg*Inlet.Ycg - OutletG.Qg*OutletG.Ycg;
+	diff((VLCSstd*(1-BSWLCS)+VLCLstd*(1-OutletL.BSW))*OutletL.Rs*OutletL.Ycg + VGstd*OutletG.Ycg) = 
+		Inlet.Qf*(1-Inlet.BSW)*effLW*Inlet.Rs*Inlet.YcgL
+		+ Inlet.Qg*Inlet.Ycg
+		- OutletL.Qf*(1-OutletL.BSW)*OutletL.Rs*OutletL.Ycg
+		- OutletG.Qg*OutletG.Ycg;
+
+	"Solution Gas/Oil Ratio - VAZQUEZ & BEGGS"
+	OutletL.Rs/'ft^3/bbl' = 0.0362*(OutletL.dg*(1 + 5.912e-5*(141.5/OutletL.d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+		*(OutletL.P/'psi')^1.0937*exp(25.724*(141.5/OutletL.d60-131.5)/(OutletL.T/'degR'));
+
+	"Volatiled Oil/Gas Ratio - TRICA & SANTOS"
+#	OutletG.Rv/'l/m^3' = (-1482.47 + 1751.75*OutletG.dg + 1058.168*OutletG.dg^2)*
+#		(OutletG.P/'psi')^(-0.187803)*exp(-5381.301*OutletG.d60/(OutletG.T/'degR'));
+	OutletG.Rv/'l/m^3' = (-1180.3 + 2170.793*OutletG.dg + 1153.42*OutletG.dg^2)*
+		(OutletG.P/'psi')^(-0.206009)*exp(-5085.453*OutletG.d60/(OutletG.T/'degR'));
+
+	"Equilibrium gas/liq relation: oil specific gravity"
+	OutletG.d60/OutletL.d60 = (Pref/OutletG.P)^0.010*exp(100/450 -100/(OutletG.T/'K'));
+
+	"Equilibrium gas/liq relation: oil normal boiling point"
+#	((OutletG.Tbn/'degR')^(1/3)/OutletG.d60)/((OutletL.Tbn/'degR')^(1/3)/OutletL.d60) = 
+#		(Pref/OutletG.P)^0.04*exp(100/450 - 100/(OutletG.T/'K'));
+	((OutletG.Tbn/'degR')^(1/3)/OutletG.d60) = ((OutletL.Tbn/'degR')^(1/3)/OutletL.d60);
+
+	"Equilibrium gas/liq relation: gas specific gravity"
+	OutletG.dg/OutletL.dg = (Pref/OutletG.P)^0.005*exp(600/450 - 600/(OutletG.T/'K'));
+
+	"Equilibrium gas/liq relation:condensate/gas yield"
+	OutletG.Ycg/OutletL.Ycg = (Pref/OutletG.P)^0.005*exp(600/450 - 600/(OutletG.T/'K'));
+	
+	"Equates of water outlet stream compositional variables"
+	OutletW.d60 = OutletL.d60;
+	OutletW.Tbn = OutletL.Tbn;
+	
+	"Thermal Equilibrium"
+	OutletL.T = OutletG.T;
+	OutletW.T = OutletG.T;
+	
+	"Mechanical Equilibrium"
+	Inlet.P = OutletG.P;
+	OutletL.P = OutletG.P;
+	OutletW.P = OutletG.P;
+#	OutletL.P = OutletG.P + g*OutletL.rhoL*LevelCL;
+#	OutletW.P = OutletG.P + g*OutletW.rhoW*LevelWCS + g*rhoLCS*LevelLCS;
+end
+
+#===== effWL following individual efficiency model by NUNES et al. Chapter 13, Section 13.3.1, eq. 13.28 ============================================
+#	effWL_p(dp/(sqrt(2)*dc)) = 0.5*(1 + cos(acos(1-(dp/(sqrt(2)*dc))^2)/3) - sqrt(3)*sen(asen(1-(dp/(sqrt(2)*dc))^2)/3));
+#	effWL_p(dp>=sqrt(2)*dc) = 1;
+	
+#	phi_p(dp) = 1/(1+(d50/dp)^n);
+	
+#	Evalute effWL eq. 13.31 using open Newton-Coates quadrature 5th degree
+#	phi_p1 = (1/5)*phi_p(sqrt(2)*dc); phi_p2 = (2/5)*phi_p(sqrt(2)*dc);  phi_p3 = (3/5)*phi_p(sqrt(2)*dc); phi_p4 = (4/5)*phi_p(sqrt(2)*dc)
+#	phi_p(dp) = 1/(1 + (d50/dp)^n) --> phi_p(sqrt(2)*dc) = 1/(1 + (d50/(sqrt(2)*dc))^n);
+	
+#	(1/5)/(1+(d50/(sqrt(2)*dc))^n) = 1/(1+(d50/dp1)^n) --> (1+(d50/dp1)^n) = 5*(1+(d50/(sqrt(2)*dc))^n)
+#	(d50/dp1)^n = 4 + 5*(d50/(sqrt(2)*dc))^n) --> (d50/dp1) = (4+5*(d50/(sqrt(2)*dc))^n)^(1/n) --> dp1 = d50/((5/1)-1+(5/1)*(d50/(sqrt(2)*dc))^n)^(1/n)
+	
+#	dp1 = d50/((5/1)-1+(5/1)*(d50/(sqrt(2)*dc))^n)^(1/n);
+#	dp2 = d50/((5/2)-1+(5/2)*(d50/(sqrt(2)*dc))^n)^(1/n);
+#	dp3 = d50/((5/3)-1+(5/3)*(d50/(sqrt(2)*dc))^n)^(1/n)
+#	dp4 = d50/((5/4)-1+(5/4)*(d50/(sqrt(2)*dc))^n)^(1/n);
+	
+#	effWL = 1 - phi_p(sqrt(2)*dc) + (phi_p(sqrt(2)*dc))/24*(11*effWL_p(dp1) + effWL_p(dp2) + effWL_p(dp3) + 11*effWL_p(dp4));
+#======================================================================================================================================================
+
+#	"Water Removal Efficiency from light phase"	#following NUNES et al. Chapter 13, Section 13.3.1, eq. 13.28
+#	effWL = 1 - 1/(1+(d50/(sqrt(2)*dc))^n) + (1/(1+(d50/(sqrt(2)*dc))^n))/24*0.5*(
+#		11*(1+cos('rad'*acos(1-(d50/((5/1)-1+(5/1)*(d50/(sqrt(2)*dc))^n)^(1/n)/(sqrt(2)*dc))^2)/3)-sqrt(3)*sin('rad'*asin(1-(d50/((5/1)-1+(5/1)*(d50/(sqrt(2)*dc))^n)^(1/n)/(sqrt(2)*dc))^2)/3)) + 
+#		(1+cos('rad'*acos(1-(d50/((5/2)-1+(5/2)*(d50/(sqrt(2)*dc))^n)^(1/n)/(sqrt(2)*dc))^2)/3)-sqrt(3)*sin('rad'*asin(1-(d50/((5/2)-1+(5/2)*(d50/(sqrt(2)*dc))^n)^(1/n)/(sqrt(2)*dc))^2)/3)) +
+#		(1+cos('rad'*acos(1-(d50/((5/3)-1+(5/3)*(d50/(sqrt(2)*dc))^n)^(1/n)/(sqrt(2)*dc))^2)/3)-sqrt(3)*sin('rad'*asin(1-(d50/((5/3)-1+(5/3)*(d50/(sqrt(2)*dc))^n)^(1/n)/(sqrt(2)*dc))^2)/3)) + 
+#		11*(1+cos('rad'*acos(1-(d50/((5/4)-1+(5/4)*(d50/(sqrt(2)*dc))^n)^(1/n)/(sqrt(2)*dc))^2)/3)-sqrt(3)*sin('rad'*asin(1-(d50/((5/4)-1+(5/4)*(d50/(sqrt(2)*dc))^n)^(1/n)/(sqrt(2)*dc))^2)/3))
+#		);
+
+#===== effWL following individual efficiency model by PEÇANHA, Chapter 3, Section 3.3, eq. 3.48 =====================================================
+#	effWL_p(dp) = 0.5*(dp/dc)^2;
+#	effWL_p(dp>=sqrt(2)*dc) = 1;
+	
+#	phi_p(dp) = 1/(1+(d50/dp)^n) --> 1 + (d50/dp)^n = 1/phi_p --> (dp/d50)^n = phi_p/(1-phi_p) --> dp = d50*(phi_p/(1-phi_p))^(1/n)
+	
+#	Evalute effWL (PEÇANHA, Chapter 3, Section 3.3, eq. 3.39) using open Newton-Coates quadrature 5th degree
+#==============================================================================================================================================
+
+#	"Water Removal Efficiency from light phase"	#following PEÇANHA, Chapter 3, Section 3.3, eq. 3.48
+#	effWL = 1 - 1/(1+(d50/(sqrt(2)*dc))^n) + (1/(1+(d50/(sqrt(2)*dc))^n))/24*0.5*(d50/dc)^2*(
+#		11/((5/1)-1+(5/1)*(d50/(sqrt(2)*dc))^n)^(2/n) + 
+#		1/((5/2)-1+(5/2)*(d50/(sqrt(2)*dc))^n)^(2/n) +
+#		1/((5/3)-1+(5/3)*(d50/(sqrt(2)*dc))^n)^(2/n) + 
+#		11/((5/4)-1+(5/4)*(d50/(sqrt(2)*dc))^n)^(2/n)
+#		);
+
+Model degasser
+	PARAMETERS
+	pi			as constant     (Brief="Pi number",Default=3.141592);
+	g			as constant  	(Brief="Gravity acceleration",Default=9.80665,Unit='m/s^2');
+	rho_H2Ostd	as dens_mass	(Brief="Water Density at std. cond.",Default=999.0054);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	Tref		as temperature	(Brief="Zero enthalpy reference",Default=288.70556);
+	Pref		as pressure		(Brief="Zero enthalpy reference",DisplayUnit='kPa',Default=1);
+	D			as length       (Brief="Degasser diameter",Default=2.5);
+	L			as length       (Brief="Degasser length",Default=10.0);
+	V			as volume       (Brief="Total degasser volume");
+	
+	VARIABLES
+in  Inlet    	as str3ph			(Brief="Inlet Stream");
+out OutletG		as drygas_stream    (Brief="Gas Outlet");
+out	OutletL		as liquid_stream	(Brief="Light phase outlet from degasser to eletrostatic chamber");
+
+	VLstd		as positive			(Brief="Total liquid volume Hold-up at degasser",Unit='m^3',Default=25);
+	VGstd     	as positive			(Brief="Gas Phase Volume Hold-up at degasser",Unit='m^3',Default=5e3);
+	E			as energy			(Brief="Energy Hold-up at degasser",DisplayUnit='MJ',Default=5e6);
+	Level 		as length			(Brief="Liquid level at degasser",Default=1.2);
+	
+	SET
+	V = L*pi*(D^2)/4;
+
+	EQUATIONS
+	"Oil std. vol. Balance"
+	diff(VLstd*(1-OutletL.BSW) + VGstd*OutletG.Rv) = Inlet.Qf*(1-Inlet.BSW) + Inlet.Qg*Inlet.Rv
+		- OutletL.Qf*(1-OutletL.BSW) - OutletG.Qg*OutletG.Rv;
+
+	"Gas std. vol. Balance"
+	diff(VLstd*(1-OutletL.BSW)*OutletL.Rs + VGstd) = Inlet.Qf*(1-Inlet.BSW)*Inlet.Rs + Inlet.Qg
+		- OutletL.Qf*(1-OutletL.BSW)*OutletL.Rs - OutletG.Qg;
+
+	"Water std. vol. Balance"
+	diff(VLstd*OutletL.BSW) = Inlet.Qf*Inlet.BSW - OutletL.Qf*OutletL.BSW;
+
+	"Water salt mass balance"
+	diff(VLstd*OutletL.BSW*OutletL.rho_Wstd*OutletL.ws) = 
+		Inlet.Qf*Inlet.BSW*Inlet.rho_Wstd*Inlet.ws - OutletL.Qf*OutletL.BSW*OutletL.rho_Wstd*OutletL.ws;
+
+	"Volume constraint"
+	V = VGstd*OutletG.Bg + VLstd*((1-OutletL.BSW)*OutletL.Bo + OutletL.BSW*OutletL.Bw);
+	
+	"Liquid volume hold-up"
+	VLstd*((1-OutletL.BSW)*OutletL.Bo + OutletL.BSW*OutletL.Bw)
+		= L*(D^2)/4*(acos((1-2*Level/D)) - (1-2*Level/D)*sin(acos(1-2*Level/D)*'rad'));
+
+	"Energy balance"
+	diff(E) = 
+			Inlet.Qf*((1-Inlet.BSW)*Inlet.d60*rho_H2Ostd*Inlet.hO + Inlet.BSW*Inlet.rho_Wstd*Inlet.hW)
+				+ Inlet.Qg*Inlet.dg*rho_AIRstd*Inlet.hG
+		  - OutletL.Qf*((1-OutletL.BSW)*OutletL.d60*rho_H2Ostd*OutletL.hO 
+				+ OutletL.BSW*OutletL.rho_Wstd*OutletL.hW)
+		  - OutletG.Qg*OutletG.dg*rho_AIRstd*OutletG.hG;
+
+	"Total Energy Hold-Up"
+	E = VLstd*((1-OutletL.BSW)*OutletL.d60*rho_H2Ostd*OutletL.hO 
+			+ OutletL.BSW*OutletL.rho_Wstd*OutletL.hW)
+		+ VGstd*OutletG.dg*rho_AIRstd*OutletG.hG - OutletG.P*V;
+
+	"Property mixing rule for oil specific gravity (std. vol. balance)"
+#	diff(VLstd*(1-OutletL.BSW)*OutletL.d60) = Inlet.Qf*(1-Inlet.BSW)*Inlet.d60
+#		- OutletL.Qf*(1-OutletL.BSW)*OutletL.d60;
+	diff(VLstd*(1-OutletL.BSW)*OutletL.d60 + VGstd*OutletG.Rv*OutletG.d60) = 
+		Inlet.Qf*(1-Inlet.BSW)*Inlet.d60 
+		+ Inlet.Qg*Inlet.Rv*Inlet.d60G
+		- OutletL.Qf*(1-OutletL.BSW)*OutletL.d60 
+		- OutletG.Qg*OutletG.Rv*OutletG.d60;
+
+	"Property mixing rule for Tbn by means of Watson K-factor (std. vol. balance)"
+#	diff(VLstd*(1-OutletL.BSW)*(OutletL.Tbn/'degR')^(1/3)) = 
+#		Inlet.Qf*(1-Inlet.BSW)*(Inlet.Tbn/'degR')^(1/3)
+#		- OutletL.Qf*(1-OutletL.BSW)*(OutletL.Tbn/'degR')^(1/3);
+	diff(VLstd*(1-OutletL.BSW)*(OutletL.Tbn/'degR')^(1/3) + VGstd*OutletG.Rv*(OutletG.Tbn/'degR')^(1/3)) = 
+		Inlet.Qf*(1-Inlet.BSW)*(Inlet.Tbn/'degR')^(1/3) 
+		+ Inlet.Qg*Inlet.Rv*(Inlet.TbnG/'degR')^(1/3)
+		- OutletL.Qf*(1-OutletL.BSW)*(OutletL.Tbn/'degR')^(1/3) 
+		- OutletG.Qg*OutletG.Rv*(OutletG.Tbn/'degR')^(1/3);
+
+	"Property mixing rule for gas specific gravity (std vol. balance)"
+#	diff(VGstd*OutletG.dg) = Inlet.Qg*Inlet.dg - OutletG.Qg*OutletG.dg;
+	diff(VGstd*OutletG.dg + VLstd*(1-OutletL.BSW)*OutletL.Rs*OutletL.dg) = 
+		Inlet.Qf*(1-Inlet.BSW)*Inlet.Rs*Inlet.dgL
+		+ Inlet.Qg*Inlet.dg
+		- OutletL.Qf*(1-OutletL.BSW)*OutletL.Rs*OutletL.dg 
+		- OutletG.Qg*OutletG.dg;
+
+	"Property mixing rule for Condensate/Gas yield (std. vol. balance)"
+#	diff(VGstd*OutletG.Ycg) = Inlet.Qg*Inlet.Ycg - OutletG.Qg*OutletG.Ycg;
+	diff(VGstd*OutletG.Ycg + VLstd*(1-OutletL.BSW)*OutletL.Rs*OutletL.Ycg) = 
+		Inlet.Qf*(1-Inlet.BSW)*Inlet.Rs*Inlet.YcgL
+		+ Inlet.Qg*Inlet.Ycg
+		- OutletL.Qf*(1-OutletL.BSW)*OutletL.Rs*OutletL.Ycg
+		- OutletG.Qg*OutletG.Ycg;
+
+	"Solution Gas/Oil Ratio - VAZQUEZ & BEGGS"
+	OutletL.Rs/'ft^3/bbl' = 0.0362*(OutletL.dg*(1 + 5.912e-5*(141.5/OutletL.d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+		*(OutletL.P/'psi')^1.0937*exp(25.724*(141.5/OutletL.d60-131.5)/(OutletL.T/'degR'));
+
+	"Volatiled Oil/Gas Ratio - TRICA & SANTOS"
+#	OutletG.Rv/'l/m^3' = (-1482.47 + 1751.75*OutletG.dg + 1058.168*OutletG.dg^2)*
+#		(OutletG.P/'psi')^(-0.187803)*exp(-5381.301*OutletG.d60/(OutletG.T/'degR'));
+	OutletG.Rv/'l/m^3' = (-1180.3 + 2170.793*OutletG.dg + 1153.42*OutletG.dg^2)*
+		(OutletG.P/'psi')^(-0.206009)*exp(-5085.453*OutletG.d60/(OutletG.T/'degR'));
+
+	"Equilibrium gas/liq relation: oil specific gravity"
+	OutletG.d60/OutletL.d60 = (Pref/OutletG.P)^0.010*exp(100/450 -100/(OutletG.T/'K'));
+
+	"Equilibrium gas/liq relation: oil normal boiling point"
+#	((OutletG.Tbn/'degR')^(1/3)/OutletG.d60)/((OutletL.Tbn/'degR')^(1/3)/OutletL.d60) = 
+#		(Pref/OutletG.P)^0.04*exp(100/450 - 100/(OutletG.T/'K'));
+	((OutletG.Tbn/'degR')^(1/3)/OutletG.d60) = ((OutletL.Tbn/'degR')^(1/3)/OutletL.d60);
+
+	"Equilibrium gas/liq relation: gas specific gravity"
+	OutletG.dg/OutletL.dg = (Pref/OutletG.P)^0.005*exp(600/450 - 600/(OutletG.T/'K'));
+
+	"Equilibrium gas/liq relation:condensate/gas yield"
+	OutletG.Ycg/OutletL.Ycg = (Pref/OutletG.P)^0.005*exp(600/450 - 600/(OutletG.T/'K'));
+	
+	"Thermal Equilibrium"
+	OutletL.T = OutletG.T;
+	
+	"Mechanical Equilibrium"
+	Inlet.P = OutletG.P;
+	OutletL.P = OutletG.P;
+end
+
+Model oil_treater
+	PARAMETERS
+	pi			as constant     (Brief="Pi number",Default=3.141592);
+	g			as constant  	(Brief="Gravity acceleration",Default=9.80665,Unit='m/s^2');
+	Tref		as temperature	(Brief="Reference temperature for std. cond.",Default=288.70556);
+	rho_H2Ostd	as dens_mass	(Brief="Water Density at std. cond.",Default=999.0054);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	D			as length       (Brief="Eletrostatic chamber diameter",Default=4);
+	L			as length       (Brief="Eletrostatic chamber length",Default=12);
+	V			as volume       (Brief="Total eletrostatic chamber volume");	
+	TRL50		as time_sec		(Brief="Residence time for 50% BSW removal",Default=300);
+	b			as positive		(Brief="effWL 2nd parameter correlation",Default=4);
+	TOGinf		as positive		(Brief="Minimum TOG achieved parameter",Unit='ml/m^3',Default=20);
+	tau			as time_sec		(Brief="TOG residence time decay",Default=500);
+	
+	VARIABLES
+in	Inlet		as strL;
+out OutletL		as liquid_stream;
+out OutletW		as water_stream;
+
+	VLstd		as positive			(Brief="Total light phase std. volume Hold-up at eletrostatic chamber",Unit='m^3',Default=150);
+	VWstd		as positive			(Brief="Total water std. volume Hold-up at eletrostatic chamber",Unit='m^3',Default=150);
+	E			as energy			(Brief="Energy Hold-up at eletrostatic chamber",DisplayUnit='MJ',Default=5e6);
+	LevelL 		as length			(Brief="Liquid level at eletrostatic chamber",Default=1.2);
+	LevelW 		as length			(Brief="Water level at eletrostatic chamber",Default=1.2);
+	effWL		as fraction			(Brief="Water Removal Efficiency from Oil-Water Emulsion Phase",Default=0.2);
+	effLW		as fraction			(Brief="Light Removal Efficiency from water Phase",Default=0.999);
+	TRL 		as time_sec			(Brief="light phase residence time at eletrostatic chamber",Lower=1e-6,Default=300);
+	dBodT		as Real				(Unit='1/K',Default=9.5e-4);
+	dBwdT		as Real				(Unit='1/K',Default=-6e-4);
+	dEdT		as Real				(Unit='MJ/K',Default=500);
+	
+	SET
+	V = L*pi*(D^2)/4;
+	
+	EQUATIONS
+	"Gas std. vol. balance"
+	OutletL.Rs = Inlet.Rs;
+
+	"Water std. vol. balance at water phase"
+	diff(VWstd) = Inlet.Qf*Inlet.BSW*effWL - OutletW.Qw;
+	
+	"Water salt mass balance at water phase"
+	diff(VWstd*OutletW.rho_Wstd*OutletW.ws) = 
+		Inlet.Qf*Inlet.BSW*effWL*Inlet.rho_Wstd*Inlet.ws
+		- OutletW.Qw*OutletW.rho_Wstd*OutletW.ws;
+
+	"Water salt content constraint"
+	OutletL.ws = OutletW.ws;
+
+	"Height constraint"
+	D = LevelW + LevelL;
+
+	"Water phase volume hold-up"
+	VWstd*OutletL.Bw = L*(D^2)/4*(acos((1-2*LevelW/D)) - (1-2*LevelW/D)*sin(acos(1-2*LevelW/D)*'rad'));
+
+	"Volume constraint"
+	V = VWstd*OutletL.Bw + VLstd*((1-OutletL.BSW)*OutletL.Bo + OutletL.BSW*OutletL.Bw);
+	
+	"Relation between BSW and residence time for light phase"
+	OutletL.BSW = Inlet.BSW/(1+(TRL/TRL50)^b);	
+
+#	OBS:	First was attempted to use correlation cited by NUNES et al., Chapter 13, Section 13.2, 
+#			eq. 13.6. This equation do not describe the assymtoptic behavior of BSW. Because of this,
+#			the correlation above has been suggested, with parameters a and b to be estimated.
+
+	"Oil residence time at light phase"
+	VLstd*(1-OutletL.BSW)*OutletL.Bo = TRL*Inlet.Qf*(1-Inlet.BSW)*Inlet.Bo;
+	
+	"Water Removal Efficiency from light phase"
+	effWL*Inlet.Qf*Inlet.BSW = Inlet.Qf*Inlet.BSW - OutletL.Qf*OutletL.BSW;
+	
+	"TOG correlation for OutletW"	#NUNES et al. Chapter 13, Section 13.3.7
+	OutletW.TOG = TOGinf + (1000*'ml/m^3'-TOGinf)*
+		exp(-((VWstd*OutletL.Bw)/(Inlet.Qf*Inlet.BSW*Inlet.Bw))/tau);
+
+#	OBS:	First was attempted to use correlation cited by NUNES et al., Chapter 13, Section 13.3.7, 
+#			This equation do not describe the assymtoptic behavior of BSW for long residence times. 
+#			Because of this, the correlation above has been suggested, with parameter TOGinf and tau
+#			to be estimated.
+
+	"Oil removal efficiency from water phase"
+	Inlet.Qf*(1-Inlet.BSW)*effLW = Inlet.Qf*(1-Inlet.BSW) - OutletW.Qw*OutletW.TOG;
+	
+	"Energy balance"
+	diff(E) = Inlet.Qf*((1-Inlet.BSW)*effLW*Inlet.d60*rho_H2Ostd*Inlet.hO + Inlet.BSW*Inlet.rho_Wstd*Inlet.hW)
+		- OutletL.Qf*((1-OutletL.BSW)*OutletL.d60*rho_H2Ostd*OutletL.hO + OutletL.BSW*OutletL.rho_Wstd*OutletL.hW)
+		- OutletW.Qw*OutletW.rho_Wstd*OutletW.hW;
+	
+	"Energy hold-Up"
+	E = VLstd*((1-OutletL.BSW)*OutletL.d60*rho_H2Ostd*OutletL.hO + OutletL.BSW*OutletL.rho_Wstd*OutletL.hW) 
+		+ VWstd*OutletW.rho_Wstd*OutletW.hW - OutletL.P*V;
+
+#===== Volume change rate constraint order reducing (structural index 2 to 1) =========================================================================
+#	V = VWstd*Bw + VLstd*((1-BSW)*Bo + BSW*Bw)
+#	diff(V) = Bw*diff(VWstd) + VWstd*diff(Bw)
+#		+ Bw*diff(VWLstd) + VWLstd*diff(Bw)
+#		+ Bo*diff(VOLstd) + VOLstd*diff(Bo)
+
+#	diff(VWstd) = qLin*BSWin*effWL - qWout
+#	diff(VWLstd) = qLin*BSWin*(1-effWL) - qLout*BSWout
+#	diff(VOLstd) = qLin*(1-BSWin)*effLW - qLout*(1-BSWout)
+
+#	diff(V) = Bw*(qLin*BSWin*effWL - qWout) + VWstd*diff(Bw)
+#		+ Bw*(qLin*BSWin*(1-effWL) - qLout*BSWout) + VLstd*BSWout*diff(Bw)
+#		+ Bo*(qLin*(1-BSWin)*effLW - qLout*(1-BSWout)) + VLstd*(1-BSWout)*diff(Bo)
+
+#	0 = Bw*(qLin*BSWin*effWL + qLin*BSWin*(1-effWL) - qLout*BSWout - qWout)
+#		+ Bo*(qLin*(1-BSWin)*effLW - qLout*(1-BSWout))
+#		+ (VWstd + VLstd*BSWout)*diff(Bw) + VLstd*(1-BSWout)*diff(Bo)
+
+#	0 = Bw*(qLin*BSWin - qLout*BSWout - qWout) 
+#		+ Bo*(qLin*(1-BSWin)*effLW - qLout*(1-BSWout))
+#		+ (VWstd + VLstd*BSWout)*diff(Bw) + VLstd*(1-BSWout)*diff(Bo)
+
+#	0 = Bw*(qLin*BSWin - qLout*BSWout - qWout) 
+#		+ Bo*(qLin*(1-BSWin)*effLW - qLout*(1-BSWout))
+#		+ (VWstd + VLstd*BSWout)*(dBw/dT)*(dT/dE)*diff(E)
+#		+ VLstd*(1-BSWout)*(dBo/dT)*(dT/dE)*diff(E)
+
+	"Volume change rate constraint (degasser liquid outlet gravity flow constraint)"
+	0*'m^3/d' = OutletL.Bw*(Inlet.Qf*Inlet.BSW - OutletL.Qf*OutletL.BSW - OutletW.Qw)
+		+ OutletL.Bo*(Inlet.Qf*(1-Inlet.BSW)*effLW - OutletL.Qf*(1-OutletL.BSW))
+		+ (VWstd + VLstd*OutletL.BSW)*dBwdT/dEdT*diff(E)
+		+ VLstd*(1-OutletL.BSW)*dBodT/dEdT*diff(E);
+#======================================================================================================================================================
+
+#===== Oil mass density differentiation in relation to temperature ====================================================================================
+#	rhoO * Bo = d60 * rho_H2Ostd;
+#	drho_O/dT = d/dT(d60*rho_H2Ostd/Bo)
+#	drho_O/dT = -d60*rho_H2Ostd/Bo^2*dBo/dT
+
+#	dBO/dT with Bo by STANDING:
+#	dBO/dT = d/dT(0.9759 + 1.2e-4*((Rs/'ft^3/bbl')*sqrt(dg/d60) + 1.25*((T/'degR')-459.67))^1.2)
+#	dBO/d(T/'degR') = 1.2e-4*sqrt(dg/d60)*d(Rs/'ft^3/bbl')/d(T/'degR') + 1.25*1.2*((T/'degR')-459.67)^0.2
+#	d(Rs/'ft^3/bbl')/d(T/'degR') = 0 by definition: OutletL.Rs = Inlet.Rs
+
+#	"dBo/dT with Bo by STANDING"
+#	dBodT*'degR' = 1.25*1.2*((OutletL.T/'degR')-459.67)^0.2;
+
+#	"drho_O/dT with Bo by STANDING"
+#	(drho_OdT*'degR')*OutletL.Bo^2/(OutletL.d60*rho_H2Ostd) = -1.25*1.2*((T/'degR')-459.67)^0.2;
+
+#	dBO/dT with Bo by VASQUES-BEGGS:
+#	dBO/dT = d/dT(1 + 4.677e-4*(Rs/'ft^3/bbl') 
+#		+ 1.751e-5*((T/'degR')-(459.67+60))*(141.5/d60-131.5)/(dg*(1+5.912e-5*(141.5/d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+#		- 1.811e-8*(Rs/'ft^3/bbl')*((T/'degR')-(459.67+60))*(141.5/OutletL.d60-131.5)/(dg*(1+5.912e-5*(141.5/d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+#	dBO/d(T/'degR') = 4.677e-4*d(Rs/'ft^3/bbl')/d(T/'degR')
+#		+ 1.751e-5*(141.5/d60-131.5)/(dg*(1+5.912e-5*(141.5/d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+#		- 1.811e-8*d(Rs/'ft^3/bbl')/d(T/'degR')*((T/'degR')-(459.67+60))*(141.5/d60-131.5)/(dg*(1+5.912e-5*(141.5/d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+#		- 1.811e-8*(Rs/'ft^3/bbl')*(141.5/d60-131.5)/(dg*(1+5.912e-5*(141.5/d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+#	d(Rs/'ft^3/bbl')/d(T/'degR') = 0 by definition: OutletL.Rs = Inlet.Rs
+
+	"dBo/dT with Bo by VASQUEZ-BEGGS"
+	dBodT*'degR' = (1.751e-5 - 1.811e-8*(OutletL.Rs/'ft^3/bbl'))*
+		(141.5/OutletL.d60-131.5)/(OutletL.dg*(1+5.912e-5*(141.5/OutletL.d60-131.5)*(40*1.8+32)*ln(14.7/114.7)));
+
+#	"drhoO/dT with Bo by VASQUEZ-BEGGS"
+#	(drho_OdT*'degR')*OutletL.Bo^2/(OutletL.d60*rho_H2Ostd) = -(
+#		1.751e-5*(141.5/OutletL.d60-131.5)/(OutletL.dg*(1+5.912e-5*(141.5/OutletL.d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+#		- 1.811e-8*(OutletL.Rs/'ft^3/bbl')*(141.5/OutletL.d60-131.5)/(OutletL.dg*(1+5.912e-5*(141.5/OutletL.d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+#		);
+#======================================================================================================================================================
+
+#===== Water phase mass density differentiation in relation to temperature ============================================================================
+#	rhoW * Bw = rho_Wstd;
+#	drho_W/dT = d/dT(rho_Wstd/Bw) = -rho_Wstd/Bw^2*dBw/dT
+
+#	dBw/d(T/'degR') = d((1+DVWP)/(1+DVWT))/d(T/'degR') = (1/(1+DVWT))*d(DVWP)/d(T/'degR') - ((1+DVWP)/(1+DVWT)^2)*d(DVWT)/d(T/'degR')
+#	dBw/d(T/'degR') = (1/(1+DVWT))*d(DVWP)/d(T/'degR') - (Bw/(1+DVWT))*d(DVWT)/d(T/'degR')
+
+#	d(DVWP)/d(T/'degR') = -1.95301e-9*(P/'psi') - 1.72834e-13*(P/'psi')^2
+#	d(DVWT)/d(T/'degR') = 1.33391e-4 + 2*5.50654e-7*((T/'degR') - 459.67)
+
+	"dBw/dT"
+	dBwdT*'degR'*(1+OutletW.DVWT) = 
+		- (1.95301e-9*(OutletL.P/'psi') + 1.72834e-13*(OutletL.P/'psi')^2)
+		- (1.33391e-4 + 2*5.50654e-7*(OutletW.T/'degR'-459.67))*OutletL.Bw;
+
+#	"drho_W/dT"
+#	(drho_WdT*'degR')*OutletL.Bw^2/OutletW.rho_Wstd*(1+DVWT) = 
+#		(1.95301e-9*(OutletL.P/'psi') + 1.72834e-13*(OutletL.P/'psi')^2) + 
+#		(1.33391e-4 + 2*5.50654e-7*(OutletW.T/'degR'-459.67))*OutletL.Bw;	
+
+#======================================================================================================================================================
+
+#===== Energy hold-up differentiation in relation to temperature ======================================================================================
+#	E = (VLstd*(1-BSW)*d60*rho_H2Ostd*hO + VLstd*BSW*rho_Wstd*hW) 
+#		+ VWstd*rho_Wstd*hW - OutletL.P*V;
+#	dE/dT = (VLstd*(1-BSW)*d60*rho_H2Ostd*dhO/dT + VLstd*BSW*rho_Wstd*dhW/dT) 
+#		+ VWstd*rho_Wstd*dhW/dT;
+
+#	dhO/dT with hO by API-TDB:
+#	d(hO/'Btu/lb')/d(T/'degR') = 
+#		(-1.17126+(0.023722+0.024907*d60)*((Tbn/'degR')^(1/3)/d60) + (1.14982-0.046535*((Tbn/'degR')^(1/3)/d60))/d60)
+#		+ (1/2)*1e-4*(1+0.82463*((Tbn/'degR')^(1/3)/d60))*(1.12172-0.27634/OutletL.d60)*(707.67^2-(Tref/'degR')^2)/(707.67-(Tref/'degR'))
+#		- (1/3)*1e-8*(1+0.82463*((Tbn/'degR')^(1/3)/d60))*(2.9027-0.70958/OutletL.d60)*(707.67^3-(Tref/'degR')^3)/(707.67-(Tref/'degR'))		
+
+#	dhW/dT with hW by RAMALINGAM-ARUMUGAM:
+#	d(hW/'kJ/kg')/(dT/'K') = 4.180 + (rhoW/'kg/m^3')*ws*(-4.396e-3 + 4.8e-6*(rhoW/'kg/m^3')*ws)
+
+	"dE/dT"
+	dEdT = VLstd*(1-OutletL.BSW)*OutletL.d60*rho_H2Ostd*
+		((-1.17126+(0.023722+0.024907*OutletL.d60)*((OutletL.Tbn/'degR')^(1/3)/OutletL.d60) 
+				+ (1.14982-0.046535*((OutletL.Tbn/'degR')^(1/3)/OutletL.d60))/OutletL.d60)
+			+ (1/2)*1e-4*(1+0.82463*((OutletL.Tbn/'degR')^(1/3)/OutletL.d60))*(1.12172-0.27634/OutletL.d60)*(707.67^2-(Tref/'degR')^2)/(707.67-(Tref/'degR'))
+			- (1/3)*1e-8*(1+0.82463*((OutletL.Tbn/'degR')^(1/3)/OutletL.d60))*(2.9027-0.70958/OutletL.d60)*(707.67^3-(Tref/'degR')^3)/(707.67-(Tref/'degR'))
+		)*'Btu/lb/degR'
+		+ (VLstd*OutletL.BSW + VWstd)*OutletW.rho_Wstd*(4.180 + (OutletW.rhoW/'kg/m^3')*OutletW.ws*(-4.396e-3 + 4.8e-6*(OutletW.rhoW/'kg/m^3')*OutletW.ws))*'kJ/kg/K';
+#======================================================================================================================================================
+
+	"Property mixing rule for oil specific gravity (std. vol. balance)"
+	diff(VLstd*(1-OutletL.BSW)*OutletL.d60) = Inlet.Qf*(1-Inlet.BSW)*effLW*Inlet.d60
+		- OutletL.Qf*(1-OutletL.BSW)*OutletL.d60;
+
+	"Property mixing rule for Tbn by means of Watson K-factor (std. vol. balance)"
+	diff(VLstd*(1-OutletL.BSW)*(OutletL.Tbn/'degR')^(1/3)) = Inlet.Qf*(1-Inlet.BSW)*effLW*(Inlet.Tbn/'degR')^(1/3)
+		- OutletL.Qf*(1-OutletL.BSW)*(OutletL.Tbn/'degR')^(1/3);
+	
+	"Equates of liquid outlet stream compositional variables"
+	OutletL.dg = Inlet.dg;
+	OutletL.Ycg = Inlet.Ycg;
+	
+	"Equates of water outlet stream compositional variables"
+	OutletW.d60 = OutletL.d60;
+	OutletW.Tbn = OutletL.Tbn;
+	
+	"Thermal Equilibrium"
+	OutletL.T = OutletW.T;
+	
+	"Mechanical Equilibrium"
+	Inlet.P = OutletL.P;
+	OutletW.P = OutletL.P;
+#	OutletW.P = OutletL.P + g*OutletL.rhoL*LevelL + g*OutletW.rhoW*LevelW;
+end
+
+Model gasliq_separator
+	PARAMETERS
+	pi			as constant     (Brief="Pi number",Default=3.141592);
+	g			as constant  	(Brief="Gravity acceleration",Default=9.80665,Unit='m/s^2');
+	R			as constant     (Brief="Ideal Gas Constant",Default=8.31447,Unit='J/mol/K');
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	rho_H2Ostd	as dens_mass	(Brief="Water Density at std. cond.",Default=999.0054);
+	Tref		as temperature	(Brief="Zero enthalpy reference",Default=288.70556);
+	Pref		as pressure		(Brief="Zero enthalpy reference",DisplayUnit='kPa',Default=1);
+	D			as length       (Brief="Scrubber diameter",Default=2.5);
+	H			as length       (Brief="Scrubber heigth",Default=6.125);
+	V			as volume       (Brief="Total volume");
+	
+	VARIABLES
+in  Inlet    	as strG;
+out OutletG		as drygas_stream;
+out OutletL		as condensate_stream;
+
+	VLstd		as positive			(Brief="Total liquid volume Hold-up",Unit='m^3',Default=10);
+	VGstd    	as positive			(Brief="Gas Phase Volume Hold-up",Unit='m^3',Default=1e3);
+	E			as energy			(Brief="Energy Hold-up",Default=5e6);
+	Level 		as length			(Brief="Liquid level",Default=0.75);
+
+	SET
+	V = H*pi*(D^2)/4;
+
+	EQUATIONS
+	"Oil std. vol. balance"
+	diff(VLstd + VGstd*OutletG.Rv) = (Inlet.Qg*Inlet.Rv + Inlet.Qc)
+		- OutletG.Qg*OutletG.Rv - OutletL.Qf;
+
+	"Gas std. vol. balance"
+	diff(VLstd*OutletL.Rs + VGstd) = (Inlet.Qg + Inlet.Qc*Inlet.Rs) 
+		- OutletG.Qg - OutletL.Qf*OutletL.Rs;
+
+	"Volume Constraint"
+	V = VGstd*OutletG.Bg + VLstd*OutletL.Bo;
+
+	"Liquid volume hold-up"
+	VLstd*OutletL.Bo = Level * pi*(D^2)/4;
+
+	"Energy balance"
+	diff(E) = Inlet.Qg*Inlet.dg*rho_AIRstd*Inlet.hG + Inlet.Qc*Inlet.d60L*rho_H2Ostd*Inlet.hO
+		- OutletG.Qg*OutletG.dg*rho_AIRstd*OutletG.hG - OutletL.Qf*OutletL.d60*rho_H2Ostd*OutletL.hO;
+	
+	"Energy Hold-Up"
+	E = VLstd*OutletL.d60*rho_H2Ostd*OutletL.hO 
+		+ VGstd*OutletG.dg*rho_AIRstd*OutletG.hG - OutletG.P*V;
+
+	"Property mixing rule for gas specific gravity (std vol. balance)"
+#	diff(VGstd*OutletG.dg) = Inlet.Qg*Inlet.dg - OutletG.Qg*OutletG.dg;
+	diff(VGstd*OutletG.dg + VLstd*OutletL.Rs*OutletL.dg) = 
+		Inlet.Qg*Inlet.dg + Inlet.Qc*Inlet.Rs*Inlet.dgL
+		- OutletL.Qf*OutletL.Rs*OutletL.dg - OutletG.Qg*OutletG.dg ;
+
+	"Property mixing rule for Condensate/Gas yield (std. vol. balance)"
+#	diff(VGstd*OutletG.Ycg) = Inlet.Qg*Inlet.Ycg - OutletG.Qg*OutletG.Ycg;
+	diff(VGstd*OutletG.Ycg + VLstd*OutletL.Rs*OutletL.Ycg) = 
+		Inlet.Qg*Inlet.Ycg + Inlet.Qc*Inlet.Rs*Inlet.YcgL
+		- OutletL.Qf*OutletL.Rs*OutletL.Ycg - OutletG.Qg*OutletG.Ycg ;
+
+	"Property mixing rule for oil specific gravity (std. vol. balance)"
+#	diff(VLstd*OutletL.d60) = Inlet.Qc*Inlet.d60L - OutletL.Qf*OutletL.d60;
+	diff(VLstd*OutletL.d60 + VGstd*OutletG.Rv*OutletG.d60) = 
+		Inlet.Qc*Inlet.d60L + Inlet.Qg*Inlet.Rv*Inlet.d60
+		- OutletL.Qf*OutletL.d60 - OutletG.Qg*OutletG.Rv*OutletG.d60;
+
+	"Property mixing rule for Tbn by means of Watson K-factor (std. vol. balance)"
+#	diff(VLstd*(OutletL.Tbn/'degR')^(1/3)) = Inlet.Qc*(Inlet.TbnL/'degR')^(1/3) 
+#		- OutletL.Qf*(OutletL.Tbn/'degR')^(1/3);
+	diff(VLstd*(OutletL.Tbn/'degR')^(1/3) + VGstd*OutletG.Rv*(OutletG.Tbn/'degR')^(1/3)) = 
+		Inlet.Qc*(Inlet.TbnL/'degR')^(1/3) + Inlet.Qg*Inlet.Rv*(Inlet.Tbn/'degR')^(1/3)
+		- OutletL.Qf*(OutletL.Tbn/'degR')^(1/3) - OutletG.Qg*OutletG.Rv*(OutletG.Tbn/'degR')^(1/3);
+
+	"Solution Gas/Oil Ratio - VAZQUEZ & BEGGS"
+	OutletL.Rs/'ft^3/bbl' = 0.0362*(OutletL.dg*(1 + 5.912e-5*(141.5/OutletL.d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+		*(OutletL.P/'psi')^1.0937*exp(25.724*(141.5/OutletL.d60-131.5)/(OutletL.T/'degR'));
+
+	"Volatiled Oil/Gas Ratio - TRICA & SANTOS"
+#	OutletG.Rv/'l/m^3' = (-1482.47 + 1751.75*OutletG.dg + 1058.168*OutletG.dg^2)*
+#		(OutletG.P/'psi')^(-0.187803)*exp(-5381.301*OutletG.d60/(OutletG.T/'degR'));
+	OutletG.Rv/'l/m^3' = (-1180.3 + 2170.793*OutletG.dg + 1153.42*OutletG.dg^2)*
+		(OutletG.P/'psi')^(-0.206009)*exp(-5085.453*OutletG.d60/(OutletG.T/'degR'));
+
+	"Equilibrium gas/liq relation: oil specific gravity"
+	OutletG.d60/OutletL.d60 = (Pref/OutletG.P)^0.010*exp(100/450 -100/(OutletG.T/'K'));
+
+	"Equilibrium gas/liq relation: oil normal boiling point"
+#	((OutletG.Tbn/'degR')^(1/3)/OutletG.d60)/((OutletL.Tbn/'degR')^(1/3)/OutletL.d60) = 
+#		(Pref/OutletG.P)^0.04*exp(100/450 - 100/(OutletG.T/'K'));
+	((OutletG.Tbn/'degR')^(1/3)/OutletG.d60) = ((OutletL.Tbn/'degR')^(1/3)/OutletL.d60);
+
+	"Equilibrium gas/liq relation: gas specific gravity"
+	OutletG.dg/OutletL.dg = (Pref/OutletG.P)^0.005*exp(600/450 - 600/(OutletG.T/'K'));
+
+	"Equilibrium gas/liq relation:condensate/gas yield"
+	OutletG.Ycg/OutletL.Ycg = (Pref/OutletG.P)^0.005*exp(600/450 - 600/(OutletG.T/'K'));
+
+	"Thermal Equilibrium"
+	OutletL.T = OutletG.T;
+	
+	"Mechanical Equilibrium"
+	Inlet.P = OutletG.P;
+	OutletL.P = OutletG.P;
+#	OutletL.P = OutletG.P + g*OutletL.rhoL*Level;
+end

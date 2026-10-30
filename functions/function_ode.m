@@ -6,14 +6,20 @@ function [ f, t_ult, t_out, y, ti, df ] = function_ode( x0, ns, ts, ws, ne, n_s,
 global modelo_dFdx modelo_dFdu
 %% Parameters
 % DEBUG  = 1; 
-
+% ws = ws*0.001;
+% w0 = w0*0.001;
 dae_index=0;
 t0 = 0;
 ks=1;
+												
+				 
 d_ode = optSPAIDER.solver.sampling;
+					  
 % d_ode = ne(1)/2;
-% nearestEven = floor(d_ode) - mod(floor(d_ode), 2);
-% d_ode = nearestEven;
+				 
+nearestEven = floor(d_ode) - mod(floor(d_ode), 2);
+d_ode = nearestEven;
+
 yi = [];
 % reg = 0; % regularization...
 % fix =0;  % fix solver...
@@ -125,7 +131,7 @@ else
 ts_frozen = roundn (ts_frozen, -5);
 te = roundn (te, -5);
 t_out = [];
-zssx= []; 
+
 
 
 %% Forward state integration with numerical jacobian...
@@ -186,11 +192,11 @@ z0 = [ x0 ];
                     [tspan,zs]  = optSPAIDER.solver.func(@(t,x)modelo_eq(t,x,cell2mat(u)',(ks),ts,reg,ns,ne,te,n_s,n_c,ne_a,ts_frozen,check,...
                         tal,est,optSPAIDER.prob.uref,...
                      optSPAIDER.prob.tref,optSPAIDER.prob.nref), [ti(ks):(ti(ks+1)-ti(ks))/d_ode: ti(ks+1)], cell2mat(pzo), optODE );
-                    % h = 30;
-                    % h=(ti(ks+1)-ti(ks))/(ns*10);
-                    % [tspan,zs]  = quadrature_collocation(@(t,x)modelo_eq(t,x), [ti(ks):(ti(ks+1)-ti(ks))/d_ode: ti(ks+1)], cell2mat(pzo), h, cell2mat(u)', ne,te,n_s,n_c,ne_a,ts_frozen,check,...
-                         % tal,est,optSPAIDER.prob.uref,...
-                      % optSPAIDER.prob.tref,optSPAIDER.prob.nref);
+							 
+												  
+																																																   
+														   
+																   
 %  
 %                          [tspan,hh,zs]= parsim('emso',[0 :0.5: 1],[  tf-to]', [u{ks,:} dtt pzo]); % original
 %                           [tspan,hh,zs] = sim('emso',[ti(1) :0.5: 1],[],[(ti(ks+1)-ti(ks))' u (ti(ks+1)-ti(ks)) ones(1,1)*z0 ]);
@@ -215,7 +221,7 @@ z0 = [ x0 ];
          zss = [zss;zsa];
          tspan = (tsc{kx});
 %          t_out= [ t_out; (kx-1)*tspan(end)+tspan];
-         t_out= [ t_out; tspan(1:end)'];
+         t_out= [ t_out; tspan(1:end)];
      end
 
      for ivf = 1:tix
@@ -260,7 +266,7 @@ z0 = [ x0 ];
                  
 %                     [tspan,zs] = ode15i('daesys',[ti(ks):(ti(ks+1)-ti(ks))/50:ti(ks+1)],z0,ydot0);
 %                  if length(tspan)<10
-%                      warning('Falha na Integraï¿½ï¿½o. Gerando novas condiï¿½ï¿½es iniciais consistentes');
+%                      warning('Falha na Integração. Gerando novas condições iniciais consistentes');
 %                      A='LIT_004.SPinput -'; 
 %                      B=num2str(UX);
 %                      C=[A,B];
@@ -319,6 +325,7 @@ z0 = [ x0 ];
                 % end
             end
             span = [0:ts(end)/d_ode: ts(end)];
+											 
             tic
             [tspan,zs]  = optSPAIDER.solver.func( @(t,x) modelo_eq(t,x,u',ks,ts,reg,ns,ne,te,n_s,n_c,ne_a,ts_frozen,...
             check,tal,est,yi,optSPAIDER.prob.uref,optSPAIDER.prob.tref,ws),...
@@ -383,9 +390,9 @@ else
      zdf = ones(n_s*(ns),1);
   end
   zdf = 0*zdf;
-  % z0 = [ x0' ; zdf ];
+					   
   z0 = [ x0' ; zdf ];
-  z0x = z0;
+
   if frozen==0
 %     check = 2:length(ts);
     for i=1:n_c
@@ -401,8 +408,10 @@ else
  %#####################################################################
  Rz0 = [ x0 ];
  if reg==0
+			  
      ti = unique(abs(ts));  %organizing time steps...
      ko=0;
+				 
             for ks = 1:length(ti)-1
 %              ko=0;   
              
@@ -433,17 +442,17 @@ else
 %                 yi = interp1(x,[yx yx(end)],optSPAIDER.problem.interpolation, 'pp');  % interpolacao ativada
 % %                 u(i)= ppval(yi,t);
 %             end
-
-                 % pseudo_sen
                  
-                 [tspan,zs]  = optSPAIDER.solver.func(@(t,x)modelo_eq(t,x,u',ks,ts,reg,ns,ne,te,n_s,n_c,ne_a,ts_frozen,check,tal,est,yi,optSPAIDER.prob.uref,...
-                     optSPAIDER.prob.tref,optSPAIDER.prob.nref), [ti(ks):(ti(ks+1)-ti(ks))/d_ode: ti(ks+1)], z0(1:n_s), optODE );
-
-
-                % Sensibilidade Analitica...
-
-                % [~,zsx]  = optSPAIDER.solver.func( @(t,x) modelo_eq_sens(t,x,u',ks,ts,reg,ns,ne,te,n_s,n_c,ne_a,ts_frozen,check,uws,tal,...
-                    % est,yi, optSPAIDER.prob.uref,optSPAIDER.prob.tref,optSPAIDER.prob.tref), [ti(ks):(ti(ks+1)-ti(ks))/d_ode: ti(ks+1)], z0x, optODE );
+							 
+				 
+																																																						
+																																   
+				 
+                 
+											
+                 
+                [tspan,zs]  = optSPAIDER.solver.func( @(t,x) modelo_eq_sens(t,x,u',ks,ts,reg,ns,ne,te,n_s,n_c,ne_a,ts_frozen,check,uws,tal,...
+                    est,yi, optSPAIDER.prob.uref,optSPAIDER.prob.tref,optSPAIDER.prob.tref), [ti(ks):(ti(ks+1)-ti(ks))/d_ode: ti(ks+1)], z0, optODE );
                  for ivf = 1+ko:length(tspan)+ko
                      [yout] = alg_eq(zs(ivf-ko,:),u);
                      y(ivf,:) = yout;
@@ -453,18 +462,18 @@ else
                     ko = length(tspan)+ko;
                     t_out= [ t_out; tspan];
                     z0 = zs(end,:);
-                    % z0x = zsx(end,:);
+									   
                     zss= [zss;zs];
-                    % zssx= [zssx;zsx];
+									   
                  else
                     ko = length(tspan)+ko;
                     t_out= [ t_out; tspan(2:end)];
                     z0 = zs(end,:);
-                    % z0x = zsx(end,:);
-                    zss= [zss;zs(2:end,:)];
-                    % zssx= [zssx;zsx(2:end,:)];
+									   
+                    zss= [zss;zs(2:end,:)]; 
+												
                  end
-                 zxp = zss;
+                 
                  
 %                 ko = length(tspan)+ko;
 %                 t_out= [ t_out; tspan];
@@ -472,90 +481,144 @@ else
 %                 zss= [zss;zs];
 %                  zss = interp1(t_out,zss,0:.1:6);
             end
+						
+		 
+													
+							   
+										  
+																					 
+				   
+		   
+												 
+					   
+																		
+										   
+										 
+																										 
+									 
+					 
+			   
+												
+											 
+				 
+																													   
+																			  
+							  
+						
+												
+													 
+									 
+					
+				 
+ 
+
+								  
+								   
+						   
+						  
+					  
+
+		
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 %   zss = interp1(t_out,zss,0:.1:6);
  end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- %Sensitivity analytical solution with variable jacobian
-    % if flagstart    %No need to update jacobians because ws(1:Nts)=ws(1)
-        % dFdx(:,:,1)=modelo_dFdx;
-        % dFdu(:,:,1)=modelo_dFdu;
-    
-        % s=modelo_eqsens_ctrl_Kp(t_out,s(1,:),ws,ks,ts,reg,ns,ne,te,n_s,n_c,ns_a,ts_frozen,points,uws,tal,est,yi,utarg,tstarg,nstarg,dFdx(:,:,1),dFdu(:,:,1));
-    
-        % flagstart=false;
-    % else
-        sv=[];
-        for j=1:n_c
-            Id=zeros(n_s,ns_a(j));
-            sv=[sv';Id(:)]';
-        end
-        s(1,:)=sv;
-        Nts = length(ti)-1;
-        
-        idts=zeros(Nts,1);
-        for k=1:Nts
-            idts(k)=max(find(ts(k)>=t_out));
-        end
-
-        % wz = rpmat(ws,)
-
-        for k=1:Nts
-
-
-                for i = 1:n_c 
-                  wsu(i) = u_reg1(0.5*(ti(k)+ ti(k+1)),te(i,:),wx(i,:),k,ne(i)); 
-                end
-                % wsu=wsu';
-            % if k>1
-                %Update dFdx
-                fhand=@(t,x)modelo_eq(t,x,wsu',ks,ts,reg,ns,ne,te,n_s,n_c,ne_a,ts_frozen,check,tal,est,yi,optSPAIDER.prob.uref,optSPAIDER.prob.tref,optSPAIDER.prob.nref);
-
-                % fhand=@(t,x)modelo_eq(t,x,wsu(:,k),ks,ts,reg,ns,ne,te,n_s,n_c,ne_a,ts_frozen,check,tal,est,yi,optSPAIDER.prob.uref,optSPAIDER.prob.tref,optSPAIDER.prob.nref);
-                            % modelo_eq(t_out, x, ws, ks,ts,reg,ns,ne,te,n_s,n_c,ns_a,ts_frozen,points,tal,est,yi,utarg,tstarg,nstarg)
-                fval=fhand([],zss(k,:)');
-                [dFdx(:,:,k),~,~]=numjac(fhand,[],zss(k,:)',fval,zeros(n_s,1),[],0);
-                dFdx(isnan(dFdx)) = 1e-5;
-                %Update dFdu
-                wsu(:,find(wsu==0))=eps;
-                fhand=@(t,u)modelo_eq(t,zss(k,:)',u,ks,ts,reg,ns,ne,te,n_s,n_c,ne_a,ts_frozen,check,tal,est,yi,optSPAIDER.prob.uref,optSPAIDER.prob.tref,optSPAIDER.prob.nref);
-                % fhand=@(t,u)uotr_ctrl_Kp(t,zss(ti(k),:)',[u(1);uf(k,2:15)';u(2:length(idu))],1,[],modelo_par);
-                % fval=fhand([],wsu(:,k));
-                fval=fhand([],wsu');
-                % [dFdu(:,:,k),~,~]=numjac(fhand,[],wsu(:,k),fval,zeros(n_c,1),[],0);
-                [dFdu(:,:,k),~,~]=numjac(fhand,[],wsu',fval,zeros(n_c,1),[],0);
-            % else
-                % dFdx(:,:,k)=modelo_dFdx;
-                % dFdu(:,:,k)=modelo_dFdu;
-            % end        
-            
-                % if k<Nts %From ts(k) to ts(k+1)
-                % sv=p_sens( [ti(k):(ti(k+1)-ti(k))/d_ode: ti(k+1)] ,s(end,:),ws,ks,ti,reg,ns,ne,te,n_s,n_c,ns_a,ts_frozen,check,tal,est,k,optSPAIDER.prob.uref,optSPAIDER.prob.tref,optSPAIDER.prob.nref,dFdx(:,:,k),dFdu(:,:,k));
-                sv=p_sens([ti(k):(ti(k+1)-ti(k))/(d_ode): ti(k+1)],  s(end,:),ks,te,reg,ns,ne,te,n_s,n_c,ns_a,ts_frozen,check,tal,est,k,optSPAIDER.prob.uref,optSPAIDER.prob.tref,optSPAIDER.prob.nref,dFdx(:,:,k),dFdu(:,:,k));
-                % s=[s(1:end,:);sv(2:end,:)];
-                s=[s(1:end,:);sv(2:end,:)];
-                % else %From ts(end) to t_out(end)
-                % if idts(end)<length(t_out)
-                    % sv=modelo_eqsens_ctrl_Kp((t_out(idts(k)):1:t_out(end))',s(1,:),ws,ks,ts,reg,ns,ne,te,n_s,n_c,ns_a,ts_frozen,points,uws,tal,est,yi,utarg,tstarg,nstarg,dFdx(:,:,k),dFdu(:,:,k));
-                    % sv=p_sens([ti(k):(ti(k+1)-ti(k))/(d_ode): ti(end)],s(end,:),ks,ts,reg,ns,ne,te,n_s,n_c,ns_a,ts_frozen,check,tal,est,k,optSPAIDER.prob.uref,optSPAIDER.prob.tref,optSPAIDER.prob.nref,dFdx(:,:,k),dFdu(:,:,k));
-                    % s=[s(1:end-1,:);sv((1:tstep:(t_out(end)-t_out(idts(k))+1))',:)];
-                    % s=[s(1:end,:);sv(2:end,:)];
-                % end
-                % end
-        end
-    % end
-    
-    %Stocking sensitivities into block vector in f_out
-    zss=[zss,s];
-    % disp(zss);
-    % zss(:,1:3) = zxp(:,1:3);
-    % zss = zssx;
-   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   % Axx=zss-zssx;
-    % disp( (Axx) );
+																	
+														
+																		  
+								  
+								  
+	
+																																																					
+	
+						  
+		  
+			  
+				   
+								  
+							
+		   
+				  
+						   
+		
+						  
+				   
+											
+		   
+							 
+						 
+									 
+					 
+		  
+		  
+								
+																						 
+					 
+							 
+					  
+							  
+																																																											 
+		  
+																																																											 
+																																		
+												 
+																							
+										   
+							  
+										  
+																																																															
+																																																		  
+											
+									  
+																					   
+																				 
+					
+											
+											
+						   
+		  
+												   
+																																																									 
+		  
+																																																										  
+											   
+											 
+													
+											  
+																																																	   
+																																																									  
+																						
+												   
+					   
+					   
+			 
+		 
+	
+													  
+			
+		
+	   
+				  
+				
+							  
+				 
+																	   
+				  
+					
 
 
   %+++++++++++++++++++++++++++++++++++++++++++++++
@@ -578,8 +641,9 @@ else
  end
  f = zss(:,:);
  % pass = t_out(end)/d_ode;
- % atime=linspace(0,t_out(end),d_ode*ns_a + 1);
- % f =  interp1(t_out,zss,atime, 'spline');
+ atime=linspace(0,t_out(end),d_ode*ns_a + 1);
+											
+ f =  interp1(t_out,zss,atime, 'spline');
  t_ult=t_out(end)*tal;
  %+++++++++++++++++++++++++++++++++++++++++++++++
 %      optSPAIDER.problem.analitic_derivarive='automatic differentiation';

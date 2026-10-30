@@ -1,0 +1,46 @@
+using "types";
+
+Model Corrente
+
+VARIABLES
+
+F   as flow_vol (Brief="Vazao Volumetrica");  #flow_vol
+
+# =======================================================================================================
+# 								Especificacoes ANP do Diesel											|
+# =======================================================================================================
+#								|				|		S50		|		S500	|		S1800	|		|
+#          CARACTERISTICA		|	UNIDADE		|===============================================|  VAR	|
+#                               |				| min	| max	| min	| max	| min	| max	|		|
+# =======================================================================================================
+# Enxofre total, max.			| ppm (mg/kg)	|		|   50	|		|  500	|		| 1800	| S		|
+# 50% vol., recuperados			| ºC			|  245	|  310	|  245	|  310	|  245	|  310	| T50R	|
+# 85% vol., recuperados, max.	| ºC			|		|		|		|  360	|		|  370	| T85R	|
+# 90% vol., recuperados, max.	| ºC			|		|  360	|		|		|		|		| T90R	|
+# Massa Especifica a 20ºC		| kg/m3			|  820	|  850	|  820	|  865	|  820	|  880	| Rho	|
+# Ponto de Fulgor, min.			| ºC			|   38	|		|   38	|		|   38	|		| PF	|
+# Viscosidade a 40ºC			| mm2/s	(cSt)	|    2	|    5	|    2	|    5	|    2	|    5	| Mu40	|
+# Ponto de entupimento, max.	| ºC			|		|  -10	|		|  -10	|		|  -10	| PE	|
+# Número de cetano, min.		| -				|   46	|		|   46	|		|   42	|		| nCET	|
+# =======================================================================================================
+
+S     as Real (Brief="Teor de Enxofre", Default=1, Lower=1e-30, Upper=1e5);
+T50R  as Real (Brief="Temp. 50% Recuperados", Default=1, Lower=-1e-30, Upper=1e3);
+T85R  as Real (Brief="Temp. 85% Recuperados", Default=1, Lower=1e-30, Upper=1e3);
+T90R  as Real (Brief="Temp. 90% Recuperados", Default=1, Lower=1e-30, Upper=1e3);
+Rho   as Real (Brief="Massa Especifica a 20ºC", Default=1, Lower=1e-30, Upper=1e4);
+PF    as Real (Brief="Ponto de Fulgor", Default=100, Lower=1e-30, Upper=1000);
+Mu40  as Real (Brief="Viscosidade a 40ºC", Default=1, Lower=1e-30, Upper=100);
+PE    as Real (Brief="Ponto de Entupimento", Default=1, Lower=-90, Upper=1e3);
+PA    as Real (Brief="Ponto de Anilina", Default=1, Lower=1e-30, Upper=1e3);
+nCET  as Real (Brief="Número de cetano", Default=1, Lower=1e-30, Upper=1e3);
+
+end
+
+Model CorrenteSelvagem
+
+VARIABLES
+
+out outlet  as Corrente;
+
+end

@@ -1,0 +1,207 @@
+#*----------------------------------------------
+* FlowSheet generated automaticaly by EMSO-GUI
+*----------------------------------------------*#
+
+using "streams.mso";
+using "stage_separators\column.mso";
+using "controllers\PIDs.mso";
+using "mixers_splitters\splitter.mso";
+using "pressure_changers\valve.mso";
+using "pressure_changers\pump.mso";
+using "controllers\heat_flow.mso";
+using "stage_separators\condenser.mso";
+using "stage_separators\reboiler.mso";
+
+FlowSheet Sample_Column_Control_Diagram
+	PARAMETERS
+	PP as Plugin(Brief="Physical Properties",
+		Type="PP"
+		,Components = ["propylene","propane"]
+		,LiquidModel = "PR"
+		,VapourModel = "PR"
+	);
+	NComp as Integer;
+	SET
+	NComp = PP.NumberOfComponents;
+
+	DEVICES
+	feed as simple_source;
+	Column_T1 as Section_Column;
+	LiquidOut as simple_sink;
+	PIDT_condenser as PID;
+	PIDT_reboiler as PID;
+	PIDL_reboiler as PID;
+	splitter_S1 as splitter_column;
+	Valve_Distillate as valve_flow;
+	distillate_stream as sink;
+	pump_P1 as pump2;
+	Valve_Bottom as valve_flow;
+	PIDL_condenser as PID;
+	heat_condenser as heat_flow;
+	heat_reboiler as heat_flow;
+	vapour_s1 as simple_sink2;
+	condenser_C1 as condenser;
+	reboiler_R1 as reboiler;
+
+	CONNECTIONS
+	splitter_S1.Distillate to Valve_Distillate.Inlet;
+	Valve_Distillate.Outlet to distillate_stream.Inlet;
+	splitter_S1.Reflux to pump_P1.Inlet;
+	Valve_Bottom.Outlet to LiquidOut.Inlet;
+	PIDL_reboiler.Output to Valve_Bottom.FlowFraction;
+	PIDL_condenser.Output to Valve_Distillate.FlowFraction;
+	PIDT_condenser.Output to heat_condenser.HeatFlowFraction;
+	PIDT_reboiler.Output to heat_reboiler.HeatFlowFraction;
+	pump_P1.Outlet to Column_T1.LiquidInlet;
+	feed.Outlet to Column_T1.FeedTray;
+	Column_T1.VapourOutlet to condenser_C1.InletVapour;
+	condenser_C1.OutletLiquid to splitter_S1.Inlet;
+	heat_condenser.HeatFlow to condenser_C1.InletQ;
+	condenser_C1.TI to PIDT_condenser.Input;
+	condenser_C1.LI to PIDL_condenser.Input;
+	condenser_C1.OutletVapour to vapour_s1.Inlet;
+	Column_T1.LiquidOutlet to reboiler_R1.InletLiquid;
+	reboiler_R1.OutletVapour to Column_T1.VapourInlet;
+	heat_reboiler.HeatFlow to reboiler_R1.InletQ;
+	reboiler_R1.OutletLiquid to Valve_Bottom.Inlet;
+	reboiler_R1.LI to PIDL_reboiler.Input;
+	reboiler_R1.TI to PIDT_reboiler.Input;
+
+	SET
+	feed.ValidPhases = "Vapour-Liquid" ;
+	Column_T1.INITIALIZATION.TopTemperature = 321 * 'K' ;
+	Column_T1.INITIALIZATION.BottomTemperature = 328 * 'K' ;
+	Column_T1.INITIALIZATION.LevelFraction = 0.8 ;
+	Column_T1.FeedTrayLocation(1) = 11 ;
+	Column_T1.NumberOfTrays = 14 ;
+	Column_T1.LiquidSideStreamLocation = 2 ;
+	Column_T1.VapourSideStreamLocation = 2 ;
+	Column_T1.WeirLength = 20.94 * 'in' ;
+	Column_T1.WeirHeight = 0.125 * 'ft' ;
+	Column_T1.TrayLiquidPasses = 1 ;
+	Column_T1.HeatSupply = 0 * 'kW' ;
+	Column_T1.AerationFraction = 0.4 ;
+	Column_T1.DryPdropCoeff = 6 ;
+	Column_T1.MurphreeEff = 1 ;
+	PIDT_condenser.PID_Select = "Ideal_AW" ;
+	PIDT_condenser.Action = "Reverse" ;
+	PIDT_condenser.Mode = "Automatic" ;
+	PIDT_condenser.Clip = "Clipped" ;
+	PIDT_condenser.alpha = 0.2 ;
+	PIDT_condenser.beta = 1 ;
+	PIDT_condenser.bias = 0.5 ;
+	PIDT_condenser.derivTime = 10 * 's' ;
+	PIDT_condenser.intTime = 100 * 's' ;
+	PIDT_condenser.gain = 5 ;
+	PIDT_condenser.gamma = 1 ;
+	PIDT_condenser.tau = 1 * 's' ;
+	PIDT_condenser.tauSet = 1 * 's' ;
+	PIDT_condenser.MinInput = 250 ;
+	PIDT_condenser.MaxInput = 380 ;
+	PIDT_condenser.MinOutput = 0 ;
+	PIDT_condenser.MaxOutput = 1 ;
+	PIDT_reboiler.PID_Select = "Ideal_AW" ;
+	PIDT_reboiler.Action = "Reverse" ;
+	PIDT_reboiler.Mode = "Automatic" ;
+	PIDT_reboiler.Clip = "Clipped" ;
+	PIDT_reboiler.alpha = 0.2 ;
+	PIDT_reboiler.beta = 1 ;
+	PIDT_reboiler.bias = 0.2 ;
+	PIDT_reboiler.derivTime = 1 * 's' ;
+	PIDT_reboiler.intTime = 10 * 's' ;
+	PIDT_reboiler.gain = 3 ;
+	PIDT_reboiler.gamma = 1 ;
+	PIDT_reboiler.tau = 1 * 's' ;
+	PIDT_reboiler.tauSet = 1 * 's' ;
+	PIDT_reboiler.MinInput = 200 ;
+	PIDT_reboiler.MaxInput = 400 ;
+	PIDT_reboiler.MinOutput = 0 ;
+	PIDT_reboiler.MaxOutput = 1 ;
+	PIDL_reboiler.PID_Select = "Ideal_AW" ;
+	PIDL_reboiler.Action = "Direct" ;
+	PIDL_reboiler.Mode = "Automatic" ;
+	PIDL_reboiler.Clip = "Clipped" ;
+	PIDL_reboiler.alpha = 1 ;
+	PIDL_reboiler.beta = 1 ;
+	PIDL_reboiler.bias = 0 ;
+	PIDL_reboiler.derivTime = 0 * 's' ;
+	PIDL_reboiler.intTime = 20 * 's' ;
+	PIDL_reboiler.gain = 5 ;
+	PIDL_reboiler.gamma = 1 ;
+	PIDL_reboiler.tau = 1 * 's' ;
+	PIDL_reboiler.tauSet = 1 * 's' ;
+	PIDL_reboiler.MinInput = 0.1 ;
+	PIDL_reboiler.MaxInput = 0.8 ;
+	PIDL_reboiler.MinOutput = 0 ;
+	PIDL_reboiler.MaxOutput = 1 ;
+	Valve_Distillate.MinFlow = 0 * 'kmol/h' ;
+	Valve_Distillate.MaxFlow = 400 * 'kmol/h' ;
+	Valve_Bottom.MinFlow = 0 * 'kmol/h' ;
+	Valve_Bottom.MaxFlow = 600 * 'kmol/h' ;
+	PIDL_condenser.PID_Select = "Ideal_AW" ;
+	PIDL_condenser.Action = "Direct" ;
+	PIDL_condenser.Mode = "Automatic" ;
+	PIDL_condenser.Clip = "Clipped" ;
+	PIDL_condenser.alpha = 1 ;
+	PIDL_condenser.beta = 1 ;
+	PIDL_condenser.bias = 0 ;
+	PIDL_condenser.derivTime = 0 * 's' ;
+	PIDL_condenser.intTime = 20 * 's' ;
+	PIDL_condenser.gain = 2 ;
+	PIDL_condenser.gamma = 1 ;
+	PIDL_condenser.tau = 1 * 's' ;
+	PIDL_condenser.tauSet = 1 * 's' ;
+	PIDL_condenser.MinInput = 0.1 ;
+	PIDL_condenser.MaxInput = 0.8 ;
+	PIDL_condenser.MinOutput = 0 ;
+	PIDL_condenser.MaxOutput = 1 ;
+	heat_condenser.MinHeatFlow = -300 * 'kW' ;
+	heat_condenser.MaxHeatFlow = 0 * 'kW' ;
+	heat_reboiler.MinHeatFlow = 0 * 'kW' ;
+	heat_reboiler.MaxHeatFlow = 450 * 'kW' ;
+	condenser_C1.Initial_Temperature = 320 * 'K' ;
+	condenser_C1.Initial_Composition(1) = 0.7 ;
+	condenser_C1.Initial_Composition(2) = 0.3 ;
+	reboiler_R1.Initial_Temperature = 335 * 'K' ;
+	reboiler_R1.Initial_Composition(1) = 0.01 ;
+	reboiler_R1.Initial_Composition(2) = 0.99 ;
+
+	SPECIFY
+	feed.MolarComposition(1) = 0.4 ;
+	feed.MolarComposition(2) = 0.6 ;
+	feed.F = 612.4 * 'kmol/h' ;
+	feed.T_Cdeg = 50 * 'K' ;
+	feed.P = 2068 * 'kPa' ;
+	Column_T1.VapourDrawOffFlow = 0 * 'kmol/h' ;
+	Column_T1.LiquidDrawOffFlow = 0 * 'kmol/h' ;
+	PIDT_condenser.SetPoint = (273+45) ;
+	PIDT_reboiler.SetPoint = (58+273) ;
+	PIDL_reboiler.SetPoint = 0.5 ;
+	splitter_S1.RefluxRatio = 20 ;
+	pump_P1.Pincrease = 14 * 'kPa' ;
+	PIDL_condenser.SetPoint = 0.5 ;
+	condenser_C1.OutletVapour.F = 0 * 'kmol/h' ;
+
+	INITIAL
+
+	GUESS
+
+	OPTIONS
+	Dynamic = true;
+	TimeStep = 0.1;
+	TimeEnd = 1;
+	TimeUnit = 'h';
+	Integration = "original";
+	#*NLASolver(
+		File = "sundials",
+		RelativeAccuracy = 1e-2,
+		AbsoluteAccuracy = 1e-6,
+		MaxIterations = 100
+	);*#
+	DAESolver(
+		File = "dassl",
+		RelativeAccuracy = 1e-2,
+		AbsoluteAccuracy = 1e-6,
+		EventAccuracy = 1e-2
+	);
+end

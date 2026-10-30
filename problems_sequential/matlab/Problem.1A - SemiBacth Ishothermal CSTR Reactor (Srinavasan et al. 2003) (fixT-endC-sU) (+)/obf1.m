@@ -1,4 +1,4 @@
-function [J] = obf1(f,t_ult,t_out,y,stages)
+function [J] = obf1(f,t_ult,t_out,y,stages,ne)
 k1 = 0.053     ;
 k2 = 0.128     ;
 cb_in = 5      ;

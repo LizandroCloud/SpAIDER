@@ -1,0 +1,906 @@
+<?xml version="1.0"?>
+<CaseDefinition>
+	<CaseDescription>
+		<DocumentType>HYSYS XML</DocumentType>
+		<XmlRecallVersion>2.0</XmlRecallVersion>
+		<CaseAuthor>Aspen HYSYS Version 2006 (20.0)</CaseAuthor>
+		<BuildNumber>6728</BuildNumber>
+		<CaseName>MLBDEMO</CaseName>
+		<CaseMode>Dynamic</CaseMode>
+		<GenerationDate>Mon Jul 23 12:33:32 2012</GenerationDate>
+		<!-- HYSYS generates a full file, but will also read back partial files. -->
+		<!-- Note: DocumentType must be set for a file to be recognized. -->
+	</CaseDescription>
+	<PFDs>
+		<PFDSForFlowSheet OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+			<FlowSheetName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+				<Value>Main</Value>
+				<ValueType>Text</ValueType>
+			</FlowSheetName>
+			<PFD OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+				<PFDName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+					<Value>PFD 1</Value>
+					<ValueType>Text</ValueType>
+				</PFDName>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>V-100</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>ThreeDSeparator</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>169.731537</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>51.9463081</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<PFDTable OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+						<ShowTable OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+							<Value>True</Value>
+							<ValueType>Text</ValueType>
+						</ShowTable>
+						<TableX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+							<Value>255.438073</Value>
+							<ValueType>Real</ValueType>
+						</TableX>
+						<TableY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+							<Value>4.1253592</Value>
+							<ValueType>Real</ValueType>
+						</TableY>
+						<ShowTableName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+							<Value>True</Value>
+							<ValueType>Text</ValueType>
+						</ShowTableName>
+						<ShowTableLabel OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+							<Value>True</Value>
+							<ValueType>Text</ValueType>
+						</ShowTableLabel>
+						<ShowTableBorder OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+							<Value>True</Value>
+							<ValueType>Text</ValueType>
+						</ShowTableBorder>
+						<ShowTableUnits OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+							<Value>True</Value>
+							<ValueType>Text</ValueType>
+						</ShowTableUnits>
+						<TableVariable OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+							<VariableLabel OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+								<Value>Separator Type</Value>
+								<ValueType>Text</ValueType>
+							</VariableLabel>
+							<VariableDesc OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+								<Value>:Selection.501</Value>
+								<ValueType>Text</ValueType>
+							</VariableDesc>
+							<VariableFormat OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+								<Value>%.0f</Value>
+								<ValueType>Text</ValueType>
+							</VariableFormat>
+						</TableVariable>
+						<TableVariable OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+							<VariableLabel OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+								<Value>Vessel Temperature</Value>
+								<ValueType>Text</ValueType>
+							</VariableLabel>
+							<VariableDesc OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+								<Value>:Temperature.500</Value>
+								<ValueType>Text</ValueType>
+							</VariableDesc>
+							<VariableFormat OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+								<Value>%.4g</Value>
+								<ValueType>Text</ValueType>
+							</VariableFormat>
+						</TableVariable>
+						<TableVariable OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+							<VariableLabel OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+								<Value>Vessel Pressure - SS</Value>
+								<ValueType>Text</ValueType>
+							</VariableLabel>
+							<VariableDesc OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+								<Value>:Pressure.500</Value>
+								<ValueType>Text</ValueType>
+							</VariableDesc>
+							<VariableFormat OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+								<Value>%.4g</Value>
+								<ValueType>Text</ValueType>
+							</VariableFormat>
+						</TableVariable>
+						<TableVariable OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+							<VariableLabel OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+								<Value>Liquid Molar Flow</Value>
+								<ValueType>Text</ValueType>
+							</VariableLabel>
+							<VariableDesc OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+								<Value>MaterialStreamObject.500:MolarFlow.501.0</Value>
+								<ValueType>Text</ValueType>
+							</VariableDesc>
+							<VariableFormat OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+								<Value>%.4g</Value>
+								<ValueType>Text</ValueType>
+							</VariableFormat>
+						</TableVariable>
+						<TableVariable OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+							<VariableLabel OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+								<Value>Duty</Value>
+								<ValueType>Text</ValueType>
+							</VariableLabel>
+							<VariableDesc OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+								<Value>:HeatFlow.500</Value>
+								<ValueType>Text</ValueType>
+							</VariableDesc>
+							<VariableFormat OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+								<Value>%.4g</Value>
+								<ValueType>Text</ValueType>
+							</VariableFormat>
+						</TableVariable>
+						<TableHidden OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+							<Value>True</Value>
+							<ValueType>Text</ValueType>
+						</TableHidden>
+					</PFDTable>
+					<UserPositioned OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</UserPositioned>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>64</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>95</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>VLV-100</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>ThreeDValve</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>36.2571925</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>133.946308</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<UserPositioned OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</UserPositioned>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-9</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>VLV-101</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>ThreeDValve</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>338.85907</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>194.496643</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<UserPositioned OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</UserPositioned>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-9</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>VLV-102</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>ThreeDValve</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>381.078606</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>1.70469761</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<UserPositioned OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</UserPositioned>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-9</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>1</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<IsStream OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</IsStream>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>MaterialStream</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-39.9814635</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>147.946308</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<UserPositioned OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</UserPositioned>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>12</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>2</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<IsStream OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</IsStream>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>MaterialStream</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>109.362951</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>225.946308</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>12</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>3</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<IsStream OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</IsStream>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>MaterialStream</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>251.295303</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>208.496643</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>12</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>4</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<IsStream OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</IsStream>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>MaterialStream</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>508.345887</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>208.496643</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<UserPositioned OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</UserPositioned>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>12</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>5</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<IsStream OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</IsStream>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>MaterialStream</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>272.405071</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>15.7046976</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>12</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>6</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<IsStream OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</IsStream>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>MaterialStream</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>507.986572</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>15.7046976</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<UserPositioned OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</UserPositioned>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>12</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>V-101</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>ThreeDSeparator</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>177.38002</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-228.321062</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<UserPositioned OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</UserPositioned>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>64</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>95</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>VLV-103</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>ThreeDValve</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>31.5226856</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-146.321062</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<UserPositioned OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</UserPositioned>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-9</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>VLV-104</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>ThreeDValve</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>342.262225</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-92.610324</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<UserPositioned OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</UserPositioned>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-9</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>VLV-105</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>ThreeDValve</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>339.725576</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-257.492529</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<UserPositioned OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</UserPositioned>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-9</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>7</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<IsStream OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</IsStream>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>MaterialStream</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-21.7469498</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-132.321062</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<UserPositioned OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</UserPositioned>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>12</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>8</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<IsStream OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</IsStream>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>MaterialStream</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>108.890489</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-132.321062</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<UserPositioned OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</UserPositioned>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>12</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>9</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<IsStream OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</IsStream>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>MaterialStream</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>256.821123</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-78.610324</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<Sx1 OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>0</Value>
+						<ValueType>Real</ValueType>
+					</Sx1>
+					<Sx2 OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>1</Value>
+						<ValueType>Real</ValueType>
+					</Sx2>
+					<Sy1 OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>1</Value>
+						<ValueType>Real</ValueType>
+					</Sy1>
+					<Sy2 OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>0</Value>
+						<ValueType>Real</ValueType>
+					</Sy2>
+					<Tx OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>0</Value>
+						<ValueType>Real</ValueType>
+					</Tx>
+					<Ty OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>0</Value>
+						<ValueType>Real</ValueType>
+					</Ty>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>12</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>10</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<IsStream OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</IsStream>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>MaterialStream</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>500.802806</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-78.610324</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<UserPositioned OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</UserPositioned>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>6.5</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>11</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<IsStream OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</IsStream>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>MaterialStream</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>255.552798</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-243.492529</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>6.5</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>12</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<IsStream OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</IsStream>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>MaterialStream</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>514.754377</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-243.492529</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<UserPositioned OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</UserPositioned>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>6.5</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>LIC-100</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>Control2</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>310.024175</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>92.5411819</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<UserPositioned OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</UserPositioned>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-8.5</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>LIC-101</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>Control2</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>301.128322</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-175.605253</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<UserPositioned OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</UserPositioned>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-8.5</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>SPRDSHT-1</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>Spreadsheet</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>588.964382</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-43.0057819</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<UserPositioned OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>True</Value>
+						<ValueType>Text</ValueType>
+					</UserPositioned>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-17</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<FSO OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<FSOName OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>SPRDSHT-2</Value>
+						<ValueType>Text</ValueType>
+					</FSOName>
+					<Icon OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>Spreadsheet</Value>
+						<ValueType>Text</ValueType>
+					</Icon>
+					<X OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>692.754377</Value>
+						<ValueType>Real</ValueType>
+					</X>
+					<Y OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-47.4979427</Value>
+						<ValueType>Real</ValueType>
+					</Y>
+					<LabelX OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-17</Value>
+						<ValueType>Real</ValueType>
+					</LabelX>
+					<LabelY OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>-18</Value>
+						<ValueType>Real</ValueType>
+					</LabelY>
+				</FSO>
+				<Connection OwnerType="FlowShtObject" OwnerName="Main" Type="ParamSet">
+					<UserRoute OwnerType="FlowShtObject" OwnerName="Main" Type="Param">
+						<Value>437.0786 21.7047 507.9866 21.7047 </Value>
+						<ValueType>Text</ValueType>
+					</UserRoute>
+				</Connection>
+			</PFD>
+		</PFDSForFlowSheet>
+	</PFDs>
+</CaseDefinition>

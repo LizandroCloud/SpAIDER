@@ -1,0 +1,13 @@
+function Y=KamalRate(Conversion, Temperature)
+A1=1.04e13;
+E1=124;
+A2=3.68e8;
+E2=73.435;
+m=0.67;
+n=1.37;
+T=Temperature+273;
+R=8.314;
+K1= A1*exp(-E1*1000/(R*T));
+K2= A2*exp(-E2*1000/(R*T));
+dalphadt=(K1+K2*Conversion^m)*(1-Conversion)^n;
+Y=dalphadt;

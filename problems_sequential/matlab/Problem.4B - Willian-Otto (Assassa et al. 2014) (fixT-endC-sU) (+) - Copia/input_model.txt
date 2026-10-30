@@ -1,0 +1,99 @@
+function [ dx y par e_var a_var c_var J cr_eq cr_deq input] = input_model
+
+% ************************************************************************
+%                              #Case study 1.A#
+% Problem:  Willian-Otto Reactor  
+% References:  Assasa and Marquardt (2014) 
+%              
+%
+% ************************************************************************
+
+[ dx y par e_var a_var c_var J cr_eq cr_deq] = dae_default;
+
+%--------------------------------------------------------------------------
+input.t0 = 0; % Initial time for integration
+input.tf = 5000; % Final time for integration
+input.x0 = [ 0 8.63 1.05 0 0 0 0 333 294 0]; %state Initial Condition
+input.u_lb = [0 0 0 ]; % control vector lower boundary 
+input.u_ub = [5 15 5]; % control vector upper boundary 
+input.u0 = [2 40]; % scalar initial estimative of control profile for each variable
+input.nU = 2; % Number of control variables...
+input.is0 = 2;  % Initial Iteration (Number of stages is ns^is0 )...
+input.isF = 7;  % Final Iteration 
+
+
+input.x0_lb = [0 0 0 ]; %x0 lb
+input.x0_ub = [0.8 0.1 1.5]; %x0 ub
+
+%--------------------------------------------------------------------------
+
+% parameters
+par(1)={'UA = 1560'}; %
+par(2)={'V = 9450'}; %
+par(3)={'Vj = 2000'}; %
+par(4)={'dh = -69919.56'}; %
+par(5)={'rg = 1.987'}; %
+par(6)={'roj = 1'}; %
+par(7)={'ros = 0.915'}; %
+par(8)={'cpj = 4045.7'}; %
+par(9)={'cps = 1647.27'}; % 4.184
+par(10)={'T0 = 333'}; % 4.184
+par(11)={'Tj0 = 294'}; % 4.184
+par(12)={'ci0 = 0.981'}; % 4.184
+par(13)={'cm0 = 8.63'}; % 4.184
+par(14)={'cb0 = 1.05'}; % 4.184
+
+%--------------------------------------------------------------------------
+
+
+% algebraic equations
+ y(1) = 9.11e13*exp(-29508/(Rg*x(8)));
+ y(2) = 1.11e5*exp(-27340/(Rg*x(8)));
+ y(3) = 1.01e7*exp(-7067/(Rg*x(8)));
+ y(4) = 2.01e6*exp(-7067/(Rg*x(8)))
+ y(5) = 1.01e7*exp(-7067/(Rg*x(8))); 
+ y(6) = 1.01e7*exp(-7067/(Rg*x(8)));
+ y(7) = 6.61e7*exp(-14400/(Rg*x(8)));
+ y(8) = 2.31e9*exp(-18000/(Rg*x(8)));
+ y(9) = ( cm0 - x(2) )/ cm0;
+ y(10) = 1.71E9 exp(-843/x(8) - 2(c1*(y(9)) + c2*(y(9))^2 + c3*(y(9))^3 ));
+ y(11) = 2.57 - 0.00505*x(8);
+ y(12) = 9.56 - 0.0176*x(8);
+ y(13) = -3.03 + 0.00785*x(8);
+  
+   
+% ode equations
+dx(1) = {'( ( u(1)*ci0 - u(2)*x(1) ) / V )  - kd*x(1) '};
+
+dx(2) = {'( (u(2) * (cm0 - x(2)) / x(8) )  - kp*x(2)*(x(6)+x(7)) '};
+
+dx(3) = {'( (u(2) * (cb0 - x(3)) / x(8) )  - x(3)*( y(4)*x(4) + y(7)*x(6) + y(8)*x(7) ) )'};
+
+dx(4) = {'( 2*f*kd*y(1) - x(4)*(y(3)*x(2) + y(4)*x(3)) )'};
+
+dx(5) = {'x(3)*(y(4)*x(4) + y(8)*(x(6)+x(7))) - x(5)*(y(5)*x(2) + y(9)*(x(5) + x(6) + x(7) ) );
+
+dx(6) = {'2*y(2)*x(2)^3 + y(3)*x(4)*x(2) + x(2)*y(7)*(x(6)+x(7)) + y(6)*x(2)*x(6) - (y(7)*x(2) + y(9)*(x(5) + x(6) + x(7) ) + y(7)*x(2) + y(8)*x(3) )*x(6)'};
+
+dx(7) = {'y(6)*x(5)*x(2) +  x(6)*x(2)*x(7) - (y(7)*x(2) + y(9)*(x(5) + x(6) + x(7) ) + y(7)*x(2) + y(8)*x(3) )*x(7)'};
+
+dx(8) = {'u(2)*(T0 - x(8))/V - (dh*y(6)*x(2)*(x(6)+x(7))/(ros*xps)) - UA*((x(8) - x(9))/(ros*cps*V)'};
+
+dx(9) = {'(u(3)*(Tj0 - x(9))/Vj) - UA*(x(8) - x(9))/(roj*cpj*Vj)'};
+
+dx(10) = {'y(9)'};
+
+% objective function
+%J = {'-1+x(end,1)+x(end,2)'};
+
+J = {'x(end,9) '};   % calculo da Fobj no tempo final...
+% constraints
+%cr_eq(1) = {'x(end,1)+x(end,2)'};
+%cr_eq(2) = {'x(:,1)^(0.5)+x(:,2)'};
+%cr_deq(1) = {'x(:,1)-1'}; %<=0
+cr_eq(1) = {'[]'}; % equality
+% cr_deq(1) = {'x(end,8) - 5.0'} ; % inequality
+cr_deq(1) = {'x(:,7) - 90'} ; % inequality
+cr_deq(2) = {'-x(:,7) + 60'} ; % inequality
+cr_deq(3) = {'x(end,8) - 5.0'} ; % inequality
+end

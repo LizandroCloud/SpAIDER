@@ -1,6 +1,8 @@
 function [ dx ] = modelo_eq( t_out, x, ws, ks,ts,reg,ns,ne,te,n_s,n_c,ns_a,ts_frozen,points,tal,est,yi,utarg,tstarg,nstarg)
 [u] = ver_reg_est1(ws,yi,t_out);
 [uref] = ver_reg_est1(ws,yi,t_out);
+
+% u = u*0.001;
 k1 = 0.053     ;
 k2 = 0.128     ;
 cb_in = 5      ;

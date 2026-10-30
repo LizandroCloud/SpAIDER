@@ -1,0 +1,35 @@
+function [J dJ] = obf2(f,t_ult,t_out,df,ws,y,stages)
+R = 8.314               ;
+MWa = 104               ;
+mwa = 205.7             ;
+Tref = 355.382          ;
+Tamb = 280.382          ;
+V = 0.00567             ;
+B1 = 0.193              ;
+P = 1.594               ;
+B2 = 0.167              ;
+Cppa = 3.140            ;
+Cpma = 1.675            ;
+Cpwa = 4.18             ;
+tb = 4000               ;
+a1_ina = 0.000*7.5*0.001;
+koa= 55                 ;
+k1a = 1000              ;
+k2a = 0.4               ;
+Ea = 29560.888          ;
+coa = 5.2e-5            ;
+c1a = 16.44             ;
+c2a = 2.3               ;
+c3a = 1.563             ;
+aoa = 555.556           ;
+Hpa = -70152.16         ;
+gma = 900               ;
+gpa = 1040              ;
+gwa = 1000              ;
+doa = .814              ;
+d1a = -5.13             ;
+hf = 1/0.7              ;
+
+J=f(end,4);
+dJ=+(0)*df(end,1,:)+(0)*df(end,2,:)+(0)*df(end,3,:)+(1)*df(end,4,:)+0*ones(1,1,length(ws));
+end

@@ -1,0 +1,186 @@
+using "streams.mso";
+
+Model Poco
+	
+	PARAMETERS
+	
+	Civ as area;
+	Cpc as area;
+	Cr as area;
+	
+	#Reservoir parameters
+	
+	Lr as length; #From the reservoir to the gas injection point
+	
+	#Annulus
+
+	M as molweight;
+	Ta as temperature;
+	Va as volume;
+	La as length;
+	
+	#Tubing
+	
+	Tw as temperature; #In the tubing
+	Lw as length;
+	Aw as area; #Cross Sectional Area above the injection point
+	Ar as area; #Cross Sectional Area below the injection point
+	
+	#General paremeters
+	
+	rgo as Real; #Gas-to-oil-ratio
+	pi as Real (Default = 3.141592);
+	g as acceleration (Default = 9.81);
+	R as Real (Unit = 'J/K/kmol', Default = 8314);
+	
+	#Oil Properties
+	
+	ro as dens_mass; #Oil
+	
+	VARIABLES
+	
+	#State Variables
+	x1 as mass; #Mass of gas in annulus
+	x2 as mass; #Mass of gas in tubing
+	x3 as mass; #Mass of oil in tubing
+	
+	#Gas injection into annulus (constant)
+	wgc as flow_mass;
+	
+	#Gas injection into the tubing from the annulus
+	wiv as flow_mass (Lower = -1e-5);
+	
+	#Gas injection into the tubing from the reservoir
+	wrg as flow_mass;
+	
+	#Gas through the production choke
+	wpg as flow_mass;
+	
+	#Oil mass from the reservoir into the tubing
+	wro as flow_mass (Lower = -1);
+	
+	#Oil mas through the production choke
+	wpo as flow_mass;
+	
+	#Mass flow through the production choke
+	wpc as flow_mass;
+	
+	#Pressures and Densities
+	
+	rom as dens_mass; #Oil and gas mixture
+	roai as dens_mass;
+	
+	Pwh as Real (Brief = "Pressure at the well head", Default=1, Lower=1e-30, Upper=5e7, final Unit = 'kPa');
+	Pwi as Real (Brief = "Pressure at the gas injection point", Default=1, Lower=1e-30, Upper=5e7, final Unit = 'kPa');
+	Pwb as Real (Brief = "Pressure at the well bore", Default=1, Lower=1e-30, Upper=5e7, final Unit = 'kPa');
+	Ps as Real (Brief = "Pressure in the manifold", Default=1, Lower=1e-30, Upper=5e7, final Unit = 'kPa');
+	Pai as Real (Brief = "Pressure in the annulus", Default=1, Lower=1e-30, Upper=5e7, final Unit = 'kPa');
+	Pr as Real (Brief = "Reservoir pressure far from the well", Default=1, Lower=1e-30, Upper=5e7, final Unit = 'kPa');
+	
+	#Oil Properties
+	vo as vol_mass; #Specific volume of the oil
+	u as fraction;
+	
+	EQUATIONS
+	
+	diff(x1) = wgc - wiv;
+	diff(x2) = wiv + wrg - wpg;
+	diff(x3) = wro - wpo;
+	
+	if Pai - Pwi > 0*'kg/m/s^2'
+		then
+	wiv = Civ*sqrt(roai*(Pai-Pwi));
+	else 
+	wiv = 0 * 'kg/s';
+	end
+	
+	if Pwh - Ps > 0 then
+	wpc = Cpc*sqrt(rom*(Pwh-Ps))*u;
+	else
+	wpc = 0 * 'kg/s';
+	end
+	
+	wpg = x2*wpc/(x2+x3);
+	wpo = x3*wpc/(x2+x3);
+	wrg = rgo*wro;
+	
+	if Pr - Pwb > 0 then
+	wro = Cr*sqrt(ro*(Pr-Pwb));
+	else
+	wro = 0*'kg/s';
+	end
+	
+	roai = M*Pai/(R*Ta);
+	rom = (x2+x3)/(Lw*Aw);
+	
+	Pai = (R*Ta/(Va*M)+g*La/Va)*x1;
+	Pwh = (R*Tw/M)*(x2/(Lw*Aw-vo*x3));
+	Pwi = Pwh + (g/Aw)*(x2+x3);
+	Pwb = Pwi + ro*g*Lr;
+	
+	#Oil is considered Incompressible 
+	vo = 1/ro;
+	
+end
+
+
+FlowSheet gisle as Poco
+
+	SET
+	
+	M 	= 0.028*'kg/mol';
+	Ta 	= 293*'K';
+	La	= 9.07*'m';
+	Va	= 22.3e-3*'m^3';
+	ro	= 923.9*'kg/m^3';
+	Tw	= 293*'K';
+	Lw	= 2400*'m';#14*'m';
+	Lr	= 40*'m';#4*'m';
+	Ar	= 0.0182*'m^2';#0.314e-3*'m^2';
+	Aw  = 0.0182*'m^2';#0.314e-3*'m^2';
+	Civ	= 1.6e-3*'m^2';#1.6e-6*'m^2';
+	Cpc	= 0.5e-2*'m^2';#0.156e-2*'m^2';#0.156e-3*'m^2';
+	Cr 	= 0.8e-4* 'm^2';#1.2e-3* 'm^2';
+	rgo = 0;
+	
+	SPECIFY
+	
+	wgc = 1.36e4*'kg/h';
+	Ps	= 64*'kgf/cm^2';
+	u = 1;
+	
+	
+	
+	EQUATIONS
+	
+	if time<0.2*'h' then
+		Pr	= 190*'kgf/cm^2';
+		#u	= 0.5;
+		else
+			#if time<0.4*'h' then
+				Pr	= 1000*'kgf/cm^2';
+			    #u	= 0.99;
+			#else
+			#	Pr	= 190*'kgf/cm^2';
+			    #u	= 0.5;
+			#end
+	end
+	
+	INITIAL
+	
+	Pwh = 135*'kgf/cm^2';
+	Pwb = 182*'kgf/cm^2';
+	Pai = 168*'kgf/cm^2';
+	
+	OPTIONS
+	
+	Dynamic 	= true;
+	TimeStep 	= 0.1;
+	TimeEnd 	= 50;
+	TimeUnit 	= 's';
+	
+	NLASolver(File="sundials", RelativeAccuracy=1e-6, AbsoluteAccuracy=1e-6, MaxIterations = 1000);
+	DAESolver(File="dassl", RelativeAccuracy=1e-6,AbsoluteAccuracy=1e-6,EventAccuracy =1e-4);
+
+
+end

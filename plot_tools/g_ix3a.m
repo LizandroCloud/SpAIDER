@@ -16,7 +16,7 @@ end
     stairs(tspan*talf,u_p,'k');
  else
     for i=1:length(tspan)
-    yi = interp1(ts_x,[wopt],'constant', 'pp');
+    yi = interp1(ts(ic,1:ns(ic)),[wopt(ic,1:ns(ic))],'nearest', 'pp');
     u(i)= ppval(yi,tspan(i));
     end 
     plot(tspan*talf,u,'--'); 

@@ -36,3 +36,7 @@ cobra/
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# PDFs de artigos (direitos autorais) e resultados grandes
+*.pdf
+Dynopt_*.txt

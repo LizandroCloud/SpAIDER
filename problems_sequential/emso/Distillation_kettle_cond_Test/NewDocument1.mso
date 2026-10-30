@@ -1,0 +1,92 @@
+#*
+ * EMSO template file for new flowsheets.
+ *
+ * The user should edit the contents of this file in order
+ * to develop a new flowsheet.
+ *
+ * $Id: flowsheet.mso 299 2007-07-04 20:02:35Z rafael $
+ *#
+
+#*
+ * The using command makes available entities declared in another files.
+ *
+ * With this command the user can make use of the EML models
+ *#
+using "stage_separators/flash";
+
+#*
+ * A new flowsheet is declared with the FlowSheet keyword and a name.
+ * A flowhseet can have several sections presented above:
+ *#
+FlowSheet MyFlowSheet
+	#*
+	 * In the PARAMETERS section we can define the constants of the
+	 * FlowSheet. When the model requires thermodynamic calculations
+	 * we should create an special parameter called PP and select
+	 * the model and components of the mixture, as follows:
+	 *#
+	PARAMETERS
+	PP	as Plugin(Brief="Physical Properties",
+		Type="PP",
+		Components = ["1,3-butadiene", "isobutene", "n-pentane", "1-pentene"],
+		LiquidModel = "PR",
+		VapourModel = "PR"
+	);
+	NComp	as Integer;
+	SET
+	NComp = PP.NumberOfComponents;
+	
+	#*
+	 * In the DEVICES section the components of the process are declared.
+	 * Each device is based in a previously defined mathematical model, coming
+	 * from the EML or developed by the user.
+	 *#
+	DEVICES
+	STR101   as source;
+	FLASH101 as flash;
+	Q101     as energy_source;
+
+	#*
+	 * Once the devices of the process were declared we can connect them
+	 * in the CONNECTIONS section
+	 *#
+	CONNECTIONS
+	STR101.Outlet     to   FLASH101.Inlet;
+	Q101.Outlet       to   FLASH101.Q;
+
+	#*
+	 * In order to simulate the process the user should specify some variables
+	 *#
+	SPECIFY
+	STR101.Outlet.F = 496.3 * 'kmol/h';
+	STR101.Outlet.T = 338 * 'K';
+	STR101.Outlet.P = 507.1 * 'kPa';
+	STR101.Outlet.z = [0.2379, 0.3082, 0.09959, 0.35431];
+
+	FLASH101.OutletV.F = 68.5 * 'kmol/h';
+	FLASH101.OutletL.F = 400*sqrt(FLASH101.Level/'m') * 'kmol/h';
+	FLASH101.Q = 1 * 'kJ/h';
+	
+	#*
+	 * We can adjust the parameters of the devices in any point after
+	 * its declaration.
+	 *#
+	SET
+	FLASH101.V = 2000 * 'm^3';
+	FLASH101.orientation = "vertical";
+	FLASH101.diameter = 1 * 'm';
+	 
+	#*
+	 * Besides the usual specifications, dynamic models require the specification
+	 * of initial conditions. 
+	 *#
+	INITIAL
+	FLASH101.OutletL.T = 330 *'K';
+	FLASH101.Level = 1 * 'm';
+	FLASH101.OutletL.z(1) = 0.1;
+	FLASH101.OutletL.z(2) = 0.1;
+	FLASH101.OutletL.z(3) = 0.1;
+end
+# The end keyword informs that the flowsheet declaration have ended.
+
+

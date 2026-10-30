@@ -1,0 +1,204 @@
+#*-------------------------------------------------------------------
+* EMSO Model Library (EML) Copyright (C) 2004 - 2007 ALSOC.
+*
+* This LIBRARY is free software; you can distribute it and/or modify
+* it under the therms of the ALSOC FREE LICENSE as available at
+* http://www.enq.ufrgs.br/alsoc.
+*
+* EMSO Copyright (C) 2004 - 2007 ALSOC, original code
+* from http://www.rps.eng.br Copyright (C) 2002-2004.
+* All rights reserved.
+*
+* EMSO is distributed under the therms of the ALSOC LICENSE as
+* available at http://www.enq.ufrgs.br/alsoc.
+*
+*---------------------------------------------------------------------
+* Hydrolysis of propylene glycol
+*----------------------------------------------------------------------
+* Solved problem from Fogler (1999)
+* Problem number: 8-4 and 8-5
+* Page: 404-410 (Brazilian edition, 2002)
+*----------------------------------------------------------------------
+*
+*   Description:
+*		The propylene glycol is produced for hydrolysis reaction of 
+*	propylene oxide in a CSTR:
+*			CH3(O)CHCH3 + H2O -> CH2(OH)CH2(OH)CH3
+*		This sample calculates the molar conversion that is reached
+*	with this operation condition. In the example 8-4 is used an
+*	adiabatic CSTR and in the example 8-5 is used a CSTR with a
+*	cooling coil.
+*
+*   Assumptions
+*		* first-order reaction with respect to propylene oxide
+*		* steady-state
+*       * adiabatic system
+*       * liquid phase
+*
+*	Specify:
+*		* the inlet stream
+*		* the kinetic parameters
+*		* the components parameters
+*
+*----------------------------------------------------------------------
+* Author: Christiano D. W. Guerra and Rodolfo Rodrigues
+* $Id: propylene_glycol.mso 202 2007-03-14 04:17:25Z arge $
+*--------------------------------------------------------------------*#
+
+using "types";
+
+
+#*---------------------------------------------------------------------
+* Example 8-4: In an adiabatic CSTR
+*--------------------------------------------------------------------*#
+
+FlowSheet adiabatic_cstr
+	PARAMETERS
+	NComp		as Integer 		(Brief="Number of components", Lower=1);
+	stoic(NComp)as Real 		(Brief="Stoichiometric coefficients");
+	vo(NComp) 	as flow_vol 	(Brief="Total input flow", DisplayUnit='ft^3/h');
+	Hro(NComp) 	as enth_mol 	(Brief="Enthalpy of formation", DisplayUnit='Btu/lbmol');
+	To 			as temperature	(Brief="Initial temperature", DisplayUnit='degR');
+	Tr 			as temperature	(Brief="Reference temperature", DisplayUnit='degR');
+	Cp(NComp)	as Real			(Brief="Molar heat capacity", Unit='Btu/lbmol/degR');
+	
+	V 			as volume 		(Brief="Volume of the reactor");
+	# Rate of reaction
+	A			as frequency	(Brief="Frequency factor");
+	E			as Real			(Brief="Energy activation", Unit='Btu/lbmol');
+	R	 		as Real			(Brief="Universal gas constant", Unit='Btu/lbmol/degR', Default=1.987);
+
+	VARIABLES
+	T 			as temperature	(Brief="Temperature", DisplayUnit='degR');
+	k 			as Real			(Brief="Specific rate of reaction", Unit='1/h');
+	XMB			as fraction		(Brief="Conversion as Material balance");
+	XEB			as fraction		(Brief="Conversion as Energy balance");
+	tau			as time_h		(Brief="Residence time");
+	Theta(NComp)as Real			(Brief="Molar fraction between components");
+	Fo(NComp)	as flow_mol		(Brief="Input molar flow of component", DisplayUnit='lbmol/h');
+	
+	Fo1         as Real;
+	
+	EQUATIONS
+	"Change time in T"
+	T = time*'degR/s';
+	
+	"Residence time"
+	V = tau*sum(vo);
+	
+	"Parameter Theta"
+	Theta = Fo/Fo(1);
+	
+	"Specific rate of reaction"
+	k = A*exp(-E/R/T);
+	
+	"Conversion as Material balance"
+	XMB*(1 + tau*k) = tau*k;
+	
+	"Conversion as Energy balance"
+	XEB*(sumt(stoic*Hro) + sumt(stoic*Cp)*(T - Tr)) = -sumt(Theta*Cp)*(T - To);
+	SPECIFY
+	
+	Fo 	= [Fo1, 802.8, 0, 71.87]*'lbmol/h';
+	Fo1 = 43.02;
+	SET
+	NComp = 4; 	# 	A: propylene oxide, B: water, 
+				#	C: propylene glicol, and M: methanol
+	stoic = [-1, -1, 1, 0]; # A + B -> C
+	
+	V 	= 300*'gal';
+	Hro = [-6.66e4, -1.23e5, -2.26e5, 0]*'Btu/lbmol'; # at Tr
+	Cp  = [35, 18, 46, 19.5]*'Btu/lbmol/degR';
+	vo  = [46.62, 233.1, 0, 46.62]*'ft^3/h';
+	
+	#Fo 	= [43.04, 802.8, 0, 71.87]*'lbmol/h';
+	To 	= (75 + 459.69)*'degR';
+	Tr 	= (68 + 459.69)*'degR';
+	
+	A 	= 16.96e12*'1/h';
+	E 	= 32400*'Btu/lbmol';
+	
+	OPTIONS
+	TimeStart = 535;
+	TimeStep = 0.45;
+	TimeEnd = 625;
+end
+
+
+#*---------------------------------------------------------------------
+* Example 8-5: In a CSTR with a cooling coil
+*--------------------------------------------------------------------*#
+
+FlowSheet cooling_cstr
+	PARAMETERS
+	NComp		as Integer 		(Brief="Number of components", Lower=1);
+	stoic(NComp)as Real 		(Brief="Stoichiometric coefficients");
+	vo(NComp) 	as flow_vol 	(Brief="Total input flow", DisplayUnit='ft^3/h');
+	Hro(NComp) 	as enth_mol 	(Brief="Enthalpy of formation", DisplayUnit='Btu/lbmol');
+	To 			as temperature	(Brief="Initial temperature");
+	Tr 			as temperature	(Brief="Reference temperature");
+	Ta			as temperature	(Brief="Temperature of cooling");
+	Cp(NComp)	as Real			(Brief="Molar heat capacity", Unit='Btu/lbmol/degR');
+	Fo(NComp)	as flow_mol		(Brief="Input molar flow of component", DisplayUnit='lbmol/h');
+	V 			as volume 		(Brief="Volume of the reactor");
+	U			as heat_trans_coeff(Brief="Heat transfer coefficient");
+	a			as area			(Brief="Heat transfer area");
+	# Rate of reaction
+	A			as frequency	(Brief="Frequency factor");
+	E			as Real			(Brief="Energy Activation", Unit='Btu/lbmol');
+	R	 		as Real			(Brief="Universal gas constant", Unit='Btu/lbmol/degR', Default=1.987);
+
+	VARIABLES
+	XMB			as fraction		(Brief="Molar conversion as Material balance");
+	XEB			as Real			(Brief="Molar conversion as Energy balance", Lower=-0.1, Upper=1.5);
+	k			as Real			(Brief="Specific rate of reaction", Unit='1/h');
+	T			as temperature	(Brief="Temperature", DisplayUnit='degR');
+	tau			as time_h		(Brief="Residence time");
+	Theta(NComp)as Real			(Brief="Molar fraction between components");
+	
+	EQUATIONS
+	"Change time in T"
+	T = time*'degR/s';
+	
+	"Specific rate of reaction"
+	k = A*exp(-E/(R*T));
+	
+	"Residence time"
+	V = tau*sum(vo);
+	
+	"Parameter Theta"
+	Theta = Fo/Fo(1);
+	
+	"Conversion as Material balance"
+	XMB*(1 + tau*k) = tau*k;
+	
+	"Conversion as Energy balance"
+	XEB*(sumt(stoic*Hro) + sumt(stoic*Cp)*(T - Tr)) = 
+		-(sumt(Theta*Cp)*(T - To) + U*a*(T - Ta)/Fo(1));
+
+	SET
+	NComp = 4; 	# 	A: propylene oxide, B: water, 
+				#	C: propylene glicol, and M: methanol
+	stoic = [-1, -1, 1, 0]; # A + B -> C
+	
+	V 	= 300*'gal';
+	U	= 100*'Btu/ft^2/h/degR';
+	a	= 40*'ft^2';
+	
+	Hro = [-6.66e4, -1.23e5, -2.26e5, 0]*'Btu/lbmol'; # at Tr
+	Cp  = [35, 18, 46, 19.5]*'Btu/lbmol/degR';
+	vo  = [46.62, 233.1, 0, 46.62]*'ft^3/h';
+	Fo 	= [43.04, 802.8, 0, 71.87]*'lbmol/h';
+	
+	To 	= (75 + 459.69)*'degR';
+	Tr 	= (68 + 459.69)*'degR';
+	Ta	= (85 + 459.69)*'degR';
+	
+	A 	= 16.96e12*'1/h';
+	E 	= 32400*'Btu/lbmol';
+	
+	OPTIONS
+	TimeStart = 535;
+	TimeStep = 0.45;
+	TimeEnd = 625;
+end

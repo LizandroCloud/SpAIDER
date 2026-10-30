@@ -1,0 +1,121 @@
+#*-------------------------------------------------------------------
+* EMSO Model Library (EML) Copyright (C) 2004 - 2007 ALSOC.
+*
+* This LIBRARY is free software; you can distribute it and/or modify
+* it under the therms of the ALSOC FREE LICENSE as available at
+* http://www.enq.ufrgs.br/alsoc.
+*
+* EMSO Copyright (C) 2004 - 2007 ALSOC, original code
+* from http://www.rps.eng.br Copyright (C) 2002-2004.
+* All rights reserved.
+*
+* EMSO is distributed under the therms of the ALSOC LICENSE as
+* available at http://www.enq.ufrgs.br/alsoc.
+*
+*--------------------------------------------------------------------
+* Sample file for column model
+*--------------------------------------------------------------------
+* 
+* This sample file needs VRTherm DEMO(www.vrtech.com.br) to run
+* SectionColumn_Test and needs VRTherm full to run the distillation
+* column flowsheet.
+*
+*----------------------------------------------------------------------
+* Author: Paula B. Staudt
+* $Id: sample_column.mso 848 2009-10-03 22:15:28Z rafael $
+*--------------------------------------------------------------------*#
+
+using "stage_separators/column";
+using "controllers/PIDIncr";
+FlowSheet Distillation_kettle_cond_Test
+	PARAMETERS
+	PP	as Plugin(Brief="Physical Properties",
+		Type="PP",
+		Components = [ "isobutane", "n-pentane", "propylene",
+		"benzene", "isobutene" ],
+		LiquidModel = "PR",
+		VapourModel = "PR"
+	);
+	NComp	as Integer;
+	
+	VARIABLES
+	Qc as energy_source (Brief="Heat rate removed from condenser");
+	Qr as energy_source (Brief="Heat rate supplied to reboiler");
+	
+	SET
+	NComp = PP.NumberOfComponents;
+
+	DEVICES
+	col as Distillation_kettle_cond;
+	feed as source;
+	zero as stream;
+	
+	CONNECTIONS
+	feed.Outlet to col.trays(5).Inlet;
+	zero to col.reb.Inlet;
+	zero to col.trays([1:4]).Inlet;
+	zero to col.trays([6:col.NTrays]).Inlet;
+	Qc.OutletQ to col.cond.InletQ;
+	Qr.OutletQ to col.reb.InletQ;
+	
+	SPECIFY
+	feed.F = 113.4 * 'kmol/h';
+	feed.T = 291 * 'K';
+	feed.P = 168.3 * 'kPa';
+	feed.Composition = 1/NComp;
+	
+	zero.F = 0 * 'kmol/h';
+	zero.T = 300 * 'K';
+	zero.P = 1 * 'atm';
+	zero.z = 1/NComp;
+	zero.v = 0;
+	zero.h = 0 * 'J/mol';
+	
+	col.sptop.Outlet2.F = 85 * 'kmol/h';
+	col.reb.OutletL.F = 28.4 * 'kmol/h';
+	col.sptop.frac = 0.444445;
+	col.cond.OutletV.F = 0 * 'kmol/h';
+	Qr.OutletQ.Q = 3.7743e6 * 'kJ/h';
+	Qc.OutletQ.Q = -3.71e6 * 'kJ/h';
+	col.pump1.dP = 16 * 'kPa';
+	col.trays.Emv = 1;
+	
+	col.alfaTopo = 2;
+	
+	SET
+	col.NTrays = 8;
+	col.cond.V = 2 * 'm^3';
+	col.cond.Across = 1 * 'm^2';
+	col.trays.V = 4 * 'ft^3';
+	col.trays.Ah = 0.394 * 'ft^2';
+	col.trays.lw = 20.94 * 'in';
+	col.trays.hw = 0.125 * 'ft';
+	col.trays.Q = 0 * 'kW';
+	col.trays.beta = 0.6;
+	col.trays.alfa = 4;
+	col.trays.Ap = 3.94 * 'ft^2';
+	col.reb.V = 2 * 'm^3';
+	col.reb.Across = 1 * 'm^2';
+	
+	INITIAL
+	# condenser
+	col.cond.OutletL.T = 260 *'K';
+	col.cond.Level = 1 * 'm';
+	col.cond.OutletL.z([1:4]) = [0.65, 0.05, 0.01, 0.01];
+
+	# reboiler
+	col.reb.OutletL.T = 350 *'K';
+	col.reb.Level = 1 * 'm';
+	col.reb.OutletL.z([1:4]) = [0.1, 0.7, 0.01, 0.01];
+
+	# column trays
+	col.trays.OutletL.T = [290:(330-290)/(col.NTrays-1):330] * 'K';
+	col.trays.Level = 1.2 * col.trays.hw;
+	col.trays.OutletL.z([1:4]) = [0.5, 0.05, 0.01, 0.01];
+
+	OPTIONS
+	TimeStep = 0.1;
+	TimeEnd = 100;
+	#GuessFile="Distillation_kettle_cond_Test.rlt";
+	#Dynamic = false;	
+end

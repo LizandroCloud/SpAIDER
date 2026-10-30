@@ -1,0 +1,23 @@
+% Copyright (c) Maarten Jansen
+% K.U.Leuven - Flanders (Belgium)
+%
+% This software is part of PiefLab and is copyrighted material. Permission is
+% granted to use and modify this software for research, under the following
+% conditions:
+% 1) Research in or financed by weapon or tobacco industry is excluded without
+% any exception from the use of this software.
+% 2) Any commercial use without explicit permission is strictly forbidden.
+% 3) All research papers presenting results which are (partly) based on this
+% software should include in their bibliography one or more references to the
+% corresponding papers. See http://www.cs.kuleuven.ac.be/~maarten/publications/
+% for a list of papers.
+% 4) All redistributions of this software, even if modified or compiled or
+% translated into a different programming language or binary code, should
+% mention the origin of the software and include these copyright instructions.
+
+% This software comes as it is. No guarantee whatsoever is given. The author
+% cannot be held responable for any misunderstanding, incorrect use, false
+% scientific conclusions or other problems following this software.
+
+% Users are welcome to report any bug to
+% maarten.jansen@cs.kuleuven.ac.be

@@ -1,0 +1,85 @@
+using "streams";
+using "Corrente";
+using "controllers/PIDs";
+using "controllers/PIDIncr";
+
+Model Tanques
+
+	PARAMETERS
+	
+	A     as area (Brief="Tank area");
+	df 	  as Real;   #dens_mass;
+	F_max as flow_vol (Brief="Vazão máxima ");
+	F_min as flow_vol (Brief="Vazão mínima ");
+	
+
+    VARIABLES
+	
+	PIDx     as PID;
+	
+	F_ad     as Real     		(Brief="Vazão adimensional");#, Lower=0,Upper=1);
+	F_sp_ad  as fraction 		(Brief="Set-point admensional da vazão");
+	F_sp 	 as flow_vol        (Brief="Set-point da vazão") ;
+	
+	Level    as length(Brief="Tank level");
+	
+	Pdrop	 as press_delta		(Brief = "Pressure Drop", DisplayUnit = 'kPa', Symbol ="\Delta P");
+	Pe       as pressure        (Brief="Pressão de entrada",DisplayUnit = 'kPa');
+	P        as pressure        (Brief="Pressão",DisplayUnit = 'kPa');
+	
+	fc 		 as positive	    (Brief = "Opening Function");  #positive
+	cv		 as positive		(Brief = "Valve Coefficient", Unit = 'm^3/h/kPa^0.5');
+	tal      as Real;
+	
+
+	out outlet as Corrente;
+
+
+
+    SET
+	df = 999.02	;
+	A = 6*'m^2';
+    
+	
+	EQUATIONS
+	
+    "Pressure Drop"
+	P  = Pe + outlet.Rho*'kg/m^3'*9.8*'m/s^2'*Level - Pdrop;
+	
+	
+	"Mass balance"
+	diff(A*Level) =  - outlet.F*tal;   
+	
+	"Valve equation"
+	
+	outlet.F = fc*cv*sqrt(Pdrop*df/outlet.Rho);	
+	
+	
+	SET
+	F_max = 250* 'm^3/h';
+	F_min = 0 * 'm^3/h';
+	PIDx.PID_Select = "Ideal_AWBT";
+	
+	EQUATIONS
+	PIDx.Parameters.tau = 1*'s';	
+    PIDx.Parameters.tauSet = 1*'s';	
+	PIDx.Parameters.alpha = 0.5;
+	PIDx.Parameters.bias = 0.5;
+	PIDx.Parameters.gamma = 1;
+	PIDx.Parameters.beta = 1;
+	PIDx.Parameters.intTime=0.3*'s';
+	PIDx.Parameters.gain =0.06;
+	PIDx.Parameters.derivTime=0*'s';
+	PIDx.Options.action = 1;
+	PIDx.Options.clip=1;
+	PIDx.Options.autoMan = 0;
+	PIDx.Ports.input = F_ad;
+	F_ad = (outlet.F - F_min)/(F_max-F_min);
+	PIDx.Ports.output=fc;
+
+		
+	PIDx.Ports.setPoint=F_sp_ad;
+	
+	F_sp_ad=(F_sp-F_min)/(F_max-F_min);
+
+end

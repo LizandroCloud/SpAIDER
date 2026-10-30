@@ -1,0 +1,158 @@
+using "types";
+using "Corrente";
+	
+Model misturador
+	
+	PARAMETERS
+	
+	nCorr as Integer (Brief = "Numero de Correntes", Lower = 1);
+	
+	VARIABLES
+	
+in	Corr(nCorr)  as Corrente;
+out	Mist    	 as Corrente;
+	
+	x(nCorr)  	 as fraction (Brief="Fracao Volumetrica - Receita da Mistura");
+
+	PF_Ra(nCorr) as Real (Brief="Ponto de Fulgor de cada componente em Rankine", Default=570, Lower=1e-30, Upper=1e30);
+	PF_Ra_M  	 as Real (Brief="Ponto de Fulgor da mistura em Rankine", Default=570, Lower=1e-30, Upper=1e30);
+	IPF(nCorr)   as Real (Brief="Indice de Ponto de Fulgor", Default=34, Lower=1e-30, Upper=1e30);
+	IPF_M        as Real (Brief="Indice de Ponto de Fulgor da mistura", Default=34, Lower=1e-30, Upper=1e30);
+	
+	PE_F(nCorr)	 as Real (Brief="Ponto de Entupimento de cada componente em Rankine", Default=40, Lower=-1e30, Upper=1e30);
+	PE_F_M  	 as Real (Brief="Ponto de Entupimento da mistura em Rankine", Default=40, Lower=-1e30, Upper=1e30);
+	IPE(nCorr)   as Real (Brief="Indice de Ponto de Entupimento", Default=4, Lower=1e-30, Upper=1e30);
+	IPE_M        as Real (Brief="Indice de Ponto de Entupimento da mistura", Default=4, Lower=1e-30, Upper=1e30);
+	
+	IMu40(nCorr) as Real (Brief="Indice de Viscosidade Cinematica a 40ºC",Default=0.09, Lower=1e-30, Upper=1e30);
+	IMu40_M      as Real (Brief="Indice de Viscosidade Cinematica a 40ºC da mistura",Default=0.09, Lower=1e-30, Upper=1e30);
+	
+	IT50R(nCorr) as Real (Brief="Indice de Temp. 50% Recuperados", Default=0.9, Lower=1e-30, Upper=1e30);
+	IT50R_M      as Real (Brief="Indice de Temp. 50% Recuperados da mistura", Default=0.9, Lower=1e-30, Upper=1e30);
+	
+	IT85R(nCorr) as Real (Brief="Indice de Temp. 85% Recuperados", Default=3.1, Lower=1e-30, Upper=1e30);
+	IT85R_M      as Real (Brief="Indice de Temp. 85% Recuperados da mistura", Default=3.1, Lower=1e-30, Upper=1e30);
+	
+	IT90R(nCorr) as Real (Brief="Indice de Temp. 90% Recuperados", Default=3.28, Lower=1e-30, Upper=1e30);
+	IT90R_M      as Real (Brief="Indice de Temp. 90% Recuperados da mistura", Default=3.28, Lower=1e-30, Upper=1e30);
+	
+	IPA(nCorr)   as Real (Brief="Indice de Ponto de Anilina", Default=0.23, Lower=1e-30, Upper=1e30);
+	IPA_M        as Real (Brief="Indice de Ponto de Anilina da mistura", Default=0.23, Lower=1e-30, Upper=1e30);
+	
+#	ADT			 as Real (Brief="Dosagem de Aditivo - ppm", Default=1, Lower=-0.1, Upper=1e30);
+	z			 as Real (Brief="Variavel Auxiliar", Default=57, Lower=-1e30, Upper=1e30);
+	API_M		 as positive (Brief="Densidade em Grau API", Default=1, Lower=0, Upper=1e30);
+
+	EQUATIONS
+
+# Referencia: "documentação de cálculo de ganho Kp no delta-V da REPLAN - GOMM - versão 1-0.pdf"
+# -------------------------------------------------------------------------------------------
+
+	"Vazao da Mistura"
+	
+# F_M(t) = sum(F_i(t))
+	Mist.F = sum(Corr.F);
+
+	"Receita da Mistura"
+	
+# x_i(t) = F_i(t) / F_M(t)
+	x = Corr.F /Mist.F;
+	
+
+# -------------------------------------------------------------------------------------------
+
+	"Densidade da Mistura"
+
+# rho_M(t) = sum(rho_i(t) * x_i(t))
+	Mist.Rho = sum(Corr.Rho * x);
+
+# -------------------------------------------------------------------------------------------
+
+	"Teor de Enxofre da Mistura"
+	
+# S_M(t) = sum(S_i(t) * rho_i(t) * x_i(t)) / rho_M(t)
+	Mist.S * Mist.Rho = sum(Corr.S * Corr.Rho * x);
+
+# -------------------------------------------------------------------------------------------
+
+	"Ponto de Fulgor da Mistura" # Método Hu-burns 
+
+# Ponto de Fulgor de cada Componente em Rankine
+	PF_Ra = 1.8 * (Corr.PF + 273.15);
+
+# Indice de Ponto de Fulgor de cada Componente - IPF_i(t) = k1 * (PF_i(t) / 459.67) ^ (1/k2)
+	IPF = 10000. * (PF_Ra / 459.67) ^ (-1./0.038);
+
+# Indice de Ponto de Fulgor da Mistura - IPF_M(t) = sum(IPF_i(t) * F_i(t)) / F_M(t)
+	IPF_M = sum(IPF * x);
+	
+# Ponto de Fulgor da Mistura - PF_Ra_M(t) = 459.67 * (IPF_M(t) / k1) ^ k2
+	PF_Ra_M = 459.67 * (IPF_M / 10000.) ^ (-0.038);
+
+# Ponto de Fulgor da Mistura em Celcius
+	Mist.PF = PF_Ra_M / 1.8 - 273.15;
+
+# -------------------------------------------------------------------------------------------
+
+	"Ponto de Entupimento" # Metodo Chevron
+
+# Ponto de Entupimento de cada Componente em Fahrenheit
+	PE_F = 1.8 * Corr.PE + 32;
+
+# Indice de Ponto de Entupimento de cada Componente - IE_i(t) = exp(a_V * E_i(t))
+	IPE = exp(0.035 * PE_F);
+
+# Indice de Ponto de Entupimento da Mistura - IE_M(t) = sum(IE_i(t) * F_i(t)) / F_M(t)
+	IPE_M = sum(IPE * x);
+
+# Ponto de Entupimento da Mistura - E_M(t) = ln(IE_M(t)) / k3
+	PE_F_M = ln(IPE_M) / 0.035;
+
+# Ponto de Entupimento da Mistura em Celcius
+	Mist.PE = (PE_F_M - 32) / 1.8;
+
+# -------------------------------------------------------------------------------------------
+
+	"Viscosidade Cinematica a 40ºC" # Metodo Chevron
+
+# Indice de Viscosidade Cinematica de cada Componente - IMu_i(t) = ln(Mu_i(t)) / ln(k4 * Mu_i(t))
+	IMu40 = ln(Corr.Mu40) / ln(1000. * Corr.Mu40);
+
+# Indice de Viscosidade Cinematica da Mistura - IMu_M(t) = sum(IMu_i(t) * F_i(t)) / F_M(t)
+	IMu40_M = sum(IMu40 * x);
+
+# Viscosidade Cinematica da Mistura -  Mu_M(t) = k4 ^ (IMu_M(t) / (1 - IMu_M(t)))
+	Mist.Mu40 = 1000. ^ (IMu40_M / (1 - IMu40_M));
+
+# -------------------------------------------------------------------------------------------
+
+	"Destilacao" # Metodo Direto Linear por Partes
+
+	IT50R = ((1.8*Corr.T50R + 32.)/546.1);
+	IT50R_M = sum(IT50R * x);
+	Mist.T50R = (546.1 * IT50R_M - 32.) / 1.8; 		# Temp. 50% Recuperados
+	
+	IT85R = ((1.8*Corr.T85R + 32.)/546.1) ^ 7.8;
+	IT85R_M = sum(IT85R * x);
+	Mist.T85R = (546.1 * IT85R_M ^ (1./7.8) - 32.) / 1.8; 		# Temp. 85% Recuperados
+	
+	IT90R = ((1.8*Corr.T90R + 32.)/546.1) ^ 7.8;
+	IT90R_M = sum(IT90R * x);
+	Mist.T90R = (546.1 * IT90R_M ^ (1./7.8) - 32.) / 1.8; 		# Temp. 90% Recuperados
+	
+# -------------------------------------------------------------------------------------------
+
+	"Numero de cetano com aditivo" # Metodo REPLAN
+
+	API_M = 141.5 / (Mist.Rho/1000.) - 131.5;
+
+	IPA = exp(-0.011 * (1.8 * Corr.PA + 32.));
+	IPA_M = sum(IPA * x);
+	Mist.PA = (-ln(IPA_M)/0.011 - 32.) / 1.8;
+	
+	z = (-0.2/0.011) * ln(IPA_M) - 1000.* 0.01739 * (Mist.Rho/1000.) + 45.354;
+	
+#	Mist.nCET = z + 0.16 * z ^ 0.36 * API_M ^ 0.57 * (ADT/10000.) ^ 0.032 * ln(1. + 17.5523 * ADT/10000.);
+	Mist.nCET = z;
+	
+end

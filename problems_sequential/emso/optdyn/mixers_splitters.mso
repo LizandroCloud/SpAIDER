@@ -1,0 +1,637 @@
+using "tristream";
+
+Model mixer3ph
+	PARAMETERS
+	rho_H2Ostd	as dens_mass	(Brief="Water density at std. cond.",Default=999.054);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	
+	numOfInlets	as Integer		(Brief="Number of inlet streams",Default=2);
+	
+	VARIABLES
+in	Inlet(numOfInlets)	as str3ph;
+out	Outlet				as triphase_stream;
+
+	EQUATIONS
+	"Oil std vol. balance"
+	Outlet.Qf*(1-Outlet.BSW) + Outlet.Qg*Outlet.Rv =  
+		sum(Inlet.Qf*(1-Inlet.BSW) + Inlet.Qg*Inlet.Rv);
+
+	"Gas std vol. Balance"
+	Outlet.Qg + Outlet.Qf*(1-Outlet.BSW)*Outlet.Rs = 
+		sum(Inlet.Qg + Inlet.Qf*(1-Inlet.BSW)*Inlet.Rs);
+
+	"Water std vol. balance"
+	Outlet.Qf*Outlet.BSW = sum(Inlet.Qf*Inlet.BSW);
+
+	"Water salt mass balance"
+	Outlet.Qf*Outlet.BSW*Outlet.rho_Wstd*Outlet.ws = 
+		sum(Inlet.Qf*Inlet.BSW*Inlet.rho_Wstd*Inlet.ws);
+
+	"Energy balance"
+	Outlet.Qf*((1-Outlet.BSW)*Outlet.d60*rho_H2Ostd*Outlet.hO 
+			+ Outlet.BSW*Outlet.rho_Wstd*Outlet.hW)
+		+ Outlet.Qg*rho_AIRstd*Outlet.dg*Outlet.hG
+	= 
+	sum(Inlet.Qf*((1-Inlet.BSW)*Inlet.d60*rho_H2Ostd*Inlet.hO 
+			+ Inlet.BSW*Inlet.rho_Wstd*Inlet.hW)
+		+ Inlet.Qg*rho_AIRstd*Inlet.dg*Inlet.hG);
+
+	"Solution Gas/Oil Ratio - VAZQUEZ & BEGGS"
+	Outlet.Rs/'ft^3/bbl' = 0.0362*(Outlet.dgL*(1 + 5.912e-5*(141.5/Outlet.d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+		*(Outlet.P/'psi')^1.0937*exp(25.724*(141.5/Outlet.d60-131.5)/(Outlet.T/'degR'));
+
+#	"Volatiled Oil/Gas Ratio - NASSAR et al."
+#	Outlet.Rv = 0.5*(1+tanh((Outlet.T/'degR'-459.67)/1e-6))*(4.7e-7*(Outlet.P/'psi')^2 - 1.4e-3*(Outlet.P/'psi') + 2.3)*
+#		exp(-3.7e-4*Outlet.dg*14.696)*exp(-460*Outlet.d60G/(Outlet.T/'degR'-459.67))*Outlet.Ycg;
+
+	"Volatiled Oil/Gas Ratio - TRICA & SANTOS"
+#	Outlet.Rv/'l/m^3' = (-1482.47 + 1751.75*Outlet.dg + 1058.168*Outlet.dg^2)*
+#		(Outlet.P/'psi')^(-0.187803)*exp(-5381.301*Outlet.d60G/(Outlet.T/'degR'));
+	Outlet.Rv/'l/m^3' = (-1180.3 + 2170.793*Outlet.dg + 1153.42*Outlet.dg^2)*
+		(Outlet.P/'psi')^(-0.206009)*exp(-5085.453*Outlet.d60G/(Outlet.T/'degR'));
+
+	"Property mixing rule for oil specific gravity (std. vol. balance)"
+	Outlet.Qf*(1-Outlet.BSW)*Outlet.d60 = 
+		sum(Inlet.Qf*(1-Inlet.BSW)*Inlet.d60);
+
+	"Property mixing rule for Tbn by means of Watson K-factor (std. vol. balance)"
+	Outlet.Qf*(1-Outlet.BSW)*(Outlet.Tbn/'degR')^(1/3) = 
+		sum(Inlet.Qf*(1-Inlet.BSW)*(Inlet.Tbn/'degR')^(1/3));
+
+	"Property mixing rule for gas specific gravity (std vol. balance)"
+	Outlet.Qg*Outlet.dg = sum(Inlet.Qg*Inlet.dg);
+
+	"Property mixing rule for Condensate/Gas yield (std. vol. balance)"
+	Outlet.Qg*Outlet.Ycg = sum(Inlet.Qg*Inlet.Ycg);
+
+	"Mechanical equilibrium"
+	Inlet(1:numOfInlets).P = Outlet.P;
+end
+
+Model mixerG
+	PARAMETERS
+	rho_H2Ostd	as dens_mass	(Brief="Water density at std. cond.",Default=999.054);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	
+	numOfInlets	as Integer		(Brief="Number of inlet streams",Default=2);
+	
+	VARIABLES
+in	Inlet(numOfInlets)	as strG;
+out	Outlet				as gas_stream;
+
+	Rveq		as positive	(Brief="Volatiled oil-gas ratio at equilibrium",Unit='l/m^3',Default=0.05);
+	SumInletOil	as positive	(Brief="Sum of inlet streams oil std. vol. flow",Unit='m^3/d',Default=1e2);
+	Ounbal		as Real		(Brief="Oil std. vol. unbalance",Unit='m^3/d',Default=0);
+
+	EQUATIONS
+#	"Oil std vol. balance"
+#	Outlet.Qc + Outlet.Qg*Outlet.Rv =  
+#		sum(Inlet.Qc + Inlet.Qg*Inlet.Rv);
+
+	"Sum of inlet streams oil std. vol."
+	SumInletOil = sum(Inlet.Qc + Inlet.Qg*Inlet.Rv);
+
+	"Oil std. vol. unbalance"
+	Ounbal = Outlet.Qg*Rveq - sum(Inlet.Qc + Inlet.Qg*Inlet.Rv);
+
+	"Std. vol. balance for condensed oil"
+	Outlet.Qc = 0.5*(1+tanh(-Ounbal/'m^3/d'/1e-6))*(-Ounbal);
+
+	"Std. vol. balance for volatiled oil-gas ratio"
+	Outlet.Qg*Outlet.Rv = 0.5*(1+tanh(Ounbal/'m^3/d'/1e-6))*SumInletOil
+		+ 0.5*(1+tanh(-Ounbal/'m^3/d'/1e-6))*Outlet.Qg*Rveq;
+#	Outlet.Rv = 0.5*(1+tanh(Ounbal/'m^3/d'/1e-6))*SumInletOil/Outlet.Qg
+#		+ 0.5*(1+tanh(-Ounbal/'m^3/d'/1e-6))*Rveq;
+
+	"Gas std vol. Balance"
+	Outlet.Qg + Outlet.Qc*Outlet.Rs = 
+		sum(Inlet.Qg + Inlet.Qc*Inlet.Rs);
+
+	"Energy balance"
+	Outlet.Qc*Outlet.d60L*rho_H2Ostd*Outlet.hO + Outlet.Qg*rho_AIRstd*Outlet.dg*Outlet.hG
+		= 
+	sum(Inlet.Qc*Inlet.d60L*rho_H2Ostd*Inlet.hO + Inlet.Qg*rho_AIRstd*Inlet.dg*Inlet.hG);
+
+	"Solution Gas/Oil Ratio - VAZQUEZ & BEGGS"
+	Outlet.Rs/'ft^3/bbl' = 0.0362*(Outlet.dgL*(1 + 5.912e-5*(141.5/Outlet.d60L-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+		*(Outlet.P/'psi')^1.0937*exp(25.724*(141.5/Outlet.d60L-131.5)/(Outlet.T/'degR'));
+
+#	"Volatiled Oil/Gas Ratio - NASSAR et al."
+#	Rveq = 0.5*(1+tanh((Outlet.T/'degR'-459.67)/1e-6))*(4.7e-7*(Outlet.P/'psi')^2 - 1.4e-3*(Outlet.P/'psi') + 2.3)*
+#		exp(-3.7e-4*Outlet.dg*14.696)*exp(-460*Outlet.d60G/(Outlet.T/'degR'-459.67))*Outlet.Ycg;
+
+	"Volatiled Oil/Gas Ratio - TRICA & SANTOS"
+#	Rveq/'l/m^3' = (-1482.47 + 1751.75*Outlet.dg + 1058.168*Outlet.dg^2)*
+#		(Outlet.P/'psi')^(-0.187803)*exp(-5381.301*Outlet.d60G/(Outlet.T/'degR'));
+	Rveq/'l/m^3' = (-1180.3 + 2170.793*Outlet.dg + 1153.42*Outlet.dg^2)*
+		(Outlet.P/'psi')^(-0.206009)*exp(-5085.453*Outlet.d60/(Outlet.T/'degR'));
+
+	"Property mixing rule for oil specific gravity (std. vol. balance)"
+#	Outlet.Qc*Outlet.d60L + Outlet.Qg*Outlet.Rv*Outlet.d60 = 
+#		sum(Inlet.Qc*Inlet.d60L + Inlet.Qg*Inlet.Rv*Inlet.d60);
+	Outlet.Qg*Outlet.Rv*Outlet.d60 = 
+		sum(Inlet.Qg*Inlet.Rv*Inlet.d60);
+
+	"Property mixing rule for Tbn by means of Watson K-factor (std. vol. balance)"
+#	Outlet.Qc*(Outlet.TbnL/'degR')^(1/3) + Outlet.Qg*Outlet.Rv*(Outlet.Tbn/'degR')^(1/3) = 
+#		sum(Inlet.Qc*(Inlet.TbnL/'degR')^(1/3) + Inlet.Qg*Inlet.Rv*(Inlet.Tbn/'degR')^(1/3));
+	Outlet.Qg*Outlet.Rv*(Outlet.Tbn/'degR')^(1/3) = 
+		sum(Inlet.Qg*Inlet.Rv*(Inlet.Tbn/'degR')^(1/3));
+
+	"Property mixing rule for gas specific gravity (std vol. balance)"
+	Outlet.Qg*Outlet.dg = sum(Inlet.Qg*Inlet.dg);
+
+	"Property mixing rule for Condensate/Gas yield (std. vol. balance)"
+	Outlet.Qg*Outlet.Ycg = sum(Inlet.Qg*Inlet.Ycg);
+
+	"Mechanical equilibrium"
+	Inlet(1:numOfInlets).P = Outlet.P;
+end
+
+Model mixerGdry
+	PARAMETERS
+	rho_H2Ostd	as dens_mass	(Brief="Water density at std. cond.",Default=999.054);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	
+	numOfInlets	as Integer		(Brief="Number of inlet streams",Default=2);
+	
+	VARIABLES
+in	Inlet(numOfInlets)	as strGdry;
+out	Outlet				as drygas_stream;
+
+	EQUATIONS
+	"Oil std vol. balance"
+	Outlet.Qg*Outlet.Rv = sum(Inlet.Qg*Inlet.Rv);
+
+	"Gas std vol. Balance"
+	Outlet.Qg + Outlet.Qc*Outlet.Rs = 
+		sum(Inlet.Qg + Inlet.Qc*Inlet.Rs);
+
+	"Energy balance"
+	Outlet.Qg*rho_AIRstd*Outlet.dg*Outlet.hG = 
+		sum(Inlet.Qg*rho_AIRstd*Inlet.dg*Inlet.hG);
+
+	"Property mixing rule for oil specific gravity (std. vol. balance)"
+	Outlet.Qg*Outlet.Rv*Outlet.d60 = 
+		sum(Inlet.Qg*Inlet.Rv*Inlet.d60);
+
+	"Property mixing rule for Tbn by means of Watson K-factor (std. vol. balance)"
+	Outlet.Qg*Outlet.Rv*(Outlet.Tbn/'degR')^(1/3) = 
+		sum(Inlet.Qg*Inlet.Rv*(Inlet.Tbn/'degR')^(1/3));
+
+	"Property mixing rule for gas specific gravity (std vol. balance)"
+	Outlet.Qg*Outlet.dg = sum(Inlet.Qg*Inlet.dg);
+
+	"Property mixing rule for Condensate/Gas yield (std. vol. balance)"
+	Outlet.Qg*Outlet.Ycg = sum(Inlet.Qg*Inlet.Ycg);
+
+	"Mechanical equilibrium"
+	Inlet(1:numOfInlets).P = Outlet.P;
+end
+
+Model mixer3_drygas
+	PARAMETERS
+	rho_H2Ostd		as dens_mass	(Brief="Water density at std. cond.",Default=999.054);
+	rho_AIRstd		as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+
+	VARIABLES
+in	Inlet1	as strGdry;
+in	Inlet2	as strGdry;
+in	Inlet3	as strGdry;
+out	Outlet	as drygas_stream;
+
+	EQUATIONS
+	"Gas std vol. flow balance"
+	Outlet.Qg = Inlet1.Qg + Inlet2.Qg + Inlet3.Qg;
+
+	"Oil std vol. flow balance"
+	Outlet.Qg*Outlet.Rv = Inlet1.Qg*Inlet1.Rv + Inlet2.Qg*Inlet2.Rv + Inlet3.Qg*Inlet3.Rv;
+
+	"Energy balance"
+	Outlet.hG = 
+		(Inlet1.Qg*Inlet1.dg*Inlet1.hG + Inlet2.Qg*Inlet2.dg*Inlet2.hG 
+		+ Inlet3.Qg*Inlet3.dg*Inlet3.hG)/(Outlet.Qg*Outlet.dg);
+
+	"Property mixing rule fo gas specific gravity (std vol. balance)"
+	Outlet.dg = 
+		(Inlet1.Qg*Inlet1.dg + Inlet2.Qg*Inlet2.dg + Inlet3.Qg*Inlet3.dg)/Outlet.Qg;
+
+	"Property mixing rule for Condensate/Gas yield (std. vol. balance)"
+	Outlet.Ycg = 
+		(Inlet1.Qg*Inlet1.Ycg + Inlet2.Qg*Inlet2.Ycg + Inlet3.Qg*Inlet3.Ycg)/Outlet.Qg;
+		
+	"Property mixing rule for d60 (std. vol. balance)"
+	Outlet.Qg*Outlet.Rv*Outlet.d60 = 
+		Inlet1.Qg*Inlet1.Rv*Inlet1.d60
+		+ Inlet2.Qg*Inlet2.Rv*Inlet2.d60
+		+ Inlet3.Qg*Inlet3.Rv*Inlet3.d60;
+
+	"Watson K-factor property mixture rule for Tbn (std vol. balance)"
+	Outlet.Qg*Outlet.Rv*(Outlet.Tbn/'degR')^(1/3) = 
+		Inlet1.Qg*Inlet1.Rv*(Inlet1.Tbn/'degR')^(1/3)
+		+ Inlet2.Qg*Inlet2.Rv*(Inlet2.Tbn/'degR')^(1/3)
+		+ Inlet3.Qg*Inlet3.Rv*(Inlet3.Tbn/'degR')^(1/3);
+
+	"Mechanical equilibrium"
+	Inlet1.P = Outlet.P;
+	Inlet2.P = Outlet.P;
+	Inlet3.P = Outlet.P;
+end
+
+Model mixerW
+	PARAMETERS
+	rho_H2Ostd	as dens_mass	(Brief="Water density at std. cond.",Default=999.054);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	
+	numOfInlets	as Integer		(Brief="Number of inlet streams",Default=2);
+	
+	VARIABLES
+in	Inlet(numOfInlets)	as strW;
+out	Outlet				as water_stream;
+	
+	EQUATIONS
+	"Water std. vol. balance"
+	Outlet.Qw = sum(Inlet.Qw);
+	
+	"Water salt mass balance"
+	Outlet.Qw*Outlet.rho_Wstd*Outlet.ws = sum(Inlet.Qw*Inlet.rho_Wstd*Inlet.ws);
+	
+	"Oil std. vol. flow balance"
+	Outlet.Qw*Outlet.TOG = sum(Inlet.Qw*Inlet.TOG);
+	
+	"Energy balance"
+	Outlet.Qw*Outlet.rho_Wstd*Outlet.hW = sum(Inlet.Qw*Inlet.rho_Wstd*Inlet.hW);
+
+	"Property mixing rule for oil specific gravity (std. vol. balance)"
+	Outlet.Qw*Outlet.TOG*Outlet.d60 = sum(Inlet.Qw*Inlet.TOG*Inlet.d60);
+
+	"Property mixing rule for Tbn by means of Watson K-factor (std. vol. balance)"
+	Outlet.Qw*Outlet.TOG*(Outlet.Tbn/'degR')^(1/3) = 
+		sum(Inlet.Qw*Inlet.TOG*(Inlet.Tbn/'degR')^(1/3));
+	
+	"Mechanical equilibrium"
+	Inlet(1:numOfInlets).P = Outlet.P;
+end
+
+Model mixer2_W3ph
+	PARAMETERS
+	rho_H2Ostd	as dens_mass	(Brief="Water density at std. cond.",Default=999.054);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	
+	VARIABLES
+in	InletF		as str3ph			(Brief="Inlet triphase stream");
+in	InletW		as strW				(Brief="Inlet water stream");
+out	Outlet		as triphase_stream	(Brief="Outlet stream");
+
+	EQUATIONS
+	"Oil std. vol. flow balance"
+#	Outlet.Qf*(1-Outlet.BSW) = InletF.Qf*(1-InletF.BSW);
+	Outlet.Qf*(1-Outlet.BSW) + Outlet.Qg*Outlet.Rv = 
+		InletF.Qf*(1-InletF.BSW) + InletF.Qg*InletF.Rv
+		+ InletW.Qw*InletW.TOG;
+	
+	"Gas std vol. Balance"
+#	Outlet.Qf*(1-Outlet.BSW)*(Outlet.Rgo + Outlet.Rs) = 
+#		InletF.Qf*(1-InletF.BSW)*(InletF.Rgo + InletF.Rs);
+	Outlet.Qf*(1-Outlet.BSW)*Outlet.Rs + Outlet.Qg = 
+		InletF.Qf*(1-InletF.BSW)*InletF.Rs + InletF.Qg;
+
+	"Water std vol. balance"
+	Outlet.Qf*Outlet.BSW = InletF.Qf*InletF.BSW + InletW.Qw;
+	
+	"Water salt mass balance"
+	Outlet.Qf*Outlet.BSW*Outlet.rho_Wstd*Outlet.ws = 
+		InletF.Qf*InletF.BSW*InletF.rho_Wstd*InletF.ws 
+		+ InletW.Qw*InletW.rho_Wstd*InletW.ws;
+
+	"Energy balance"
+	Outlet.Qf*((1-Outlet.BSW)*Outlet.d60*rho_H2Ostd*Outlet.hO + Outlet.BSW*Outlet.rho_Wstd*Outlet.hW)
+		+ Outlet.Qg*rho_AIRstd*Outlet.dg*Outlet.hG
+	= 
+	InletF.Qf*((1-InletF.BSW)*InletF.d60*rho_H2Ostd*InletF.hO + InletF.BSW*InletF.rho_Wstd*InletF.hW)
+		+ InletF.Qg*rho_AIRstd*InletF.dg*InletF.hG
+		+ InletW.Qw*InletW.rho_Wstd*InletW.hW;
+
+	"Solution Gas/Oil Ratio - VAZQUEZ & BEGGS"
+	Outlet.Rs/'ft^3/bbl' = 0.0362*(Outlet.dgL*(1 + 5.912e-5*(141.5/Outlet.d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+		*(Outlet.P/'psi')^1.0937*exp(25.724*(141.5/Outlet.d60-131.5)/(Outlet.T/'degR'));
+
+#	"Volatiled Oil/Gas Ratio - NASSAR et al."
+#	Outlet.Rv = 0.5*(1+tanh((Outlet.T/'degR'-459.67)/1e-6))*(4.7e-7*(Outlet.P/'psi')^2 - 1.4e-3*(Outlet.P/'psi') + 2.3)*
+#		exp(-3.7e-4*Outlet.dg*14.696)*exp(-460*Outlet.d60G/(Outlet.T/'degR'-459.67))*Outlet.Ycg;
+
+	"Volatiled Oil/Gas Ratio - TRICA & SANTOS"
+#	Outlet.Rv/'l/m^3' = (-1482.47 + 1751.75*Outlet.dg + 1058.168*Outlet.dg^2)*
+#		(Outlet.P/'psi')^(-0.187803)*exp(-5381.301*Outlet.d60G/(Outlet.T/'degR'));
+	Outlet.Rv/'l/m^3' = (-1180.3 + 2170.793*Outlet.dg + 1153.42*Outlet.dg^2)*
+		(Outlet.P/'psi')^(-0.206009)*exp(-5085.453*Outlet.d60G/(Outlet.T/'degR'));
+
+	"Property mixing rule for oil specific gravity (std. vol. balance)"
+#	Outlet.Qf*(1-Outlet.BSW)*Outlet.d60 = 
+#		InletF.Qf*(1-InletF.BSW)*InletF.d60 + InletW.Qw*InletW.TOG*InletW.d60;
+	Outlet.Qf*(1-Outlet.BSW)*Outlet.d60 + Outlet.Qg*Outlet.Rv*Outlet.d60G = 
+		InletF.Qf*(1-InletF.BSW)*InletF.d60 + InletF.Qg*InletF.Rv*InletF.d60G
+		+ InletW.Qw*InletW.TOG*InletW.d60;
+
+	"Property mixing rule for Tbn by means of Watson K-factor (std. vol. balance)"
+#	Outlet.Qf*(1-Outlet.BSW)*(Outlet.Tbn/'degR')^(1/3) = 
+#		InletF.Qf*(1-InletF.BSW)*(InletF.Tbn/'degR')^(1/3) 
+#		+ InletW.Qw*InletW.TOG*(InletW.Tbn/'degR')^(1/3);
+	Outlet.Qf*(1-Outlet.BSW)*(Outlet.Tbn/'degR')^(1/3) + Outlet.Qg*Outlet.Rv*(Outlet.TbnG/'degR')^(1/3) = 
+		InletF.Qf*(1-InletF.BSW)*(InletF.Tbn/'degR')^(1/3) + InletF.Qg*InletF.Rv*(InletF.TbnG/'degR')^(1/3) 
+		+ InletW.Qw*InletW.TOG*(InletW.Tbn/'degR')^(1/3);
+	
+	"Property mixing rule for gas specific gravity (std vol. balance)"
+#	Outlet.Qg*Outlet.dg = InletF.Qg*InletF.dg;
+	Outlet.Qg*Outlet.dg + Outlet.Qf*(1-Outlet.BSW)*Outlet.Rs*Outlet.dgL = 
+		InletF.Qg*InletF.dg + InletF.Qf*(1-InletF.BSW)*InletF.Rs*InletF.dgL;
+
+	"Property mixing rule for Condensate/Gas yield (std. vol. balance)"
+#	Outlet.Qg*Outlet.Ycg = InletF.Qg*InletF.Ycg;
+	Outlet.Qg*Outlet.Ycg + Outlet.Qf*(1-Outlet.BSW)*Outlet.Rs*Outlet.YcgL = 
+		InletF.Qg*InletF.Ycg + InletF.Qf*(1-InletF.BSW)*InletF.Rs*InletF.YcgL;
+
+	"Mechanical equilibrium"
+	InletF.P = Outlet.P;
+	InletW.P = Outlet.P;
+end
+
+Model mixer2_GL
+	PARAMETERS
+	rho_H2Ostd	as dens_mass	(Brief="Water density at std. cond.",Default=999.054);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	
+	VARIABLES
+in	InletL		as strL			(Brief="Inlet liquid stream");
+in	InletG		as strG			(Brief="Inlet gas stream");
+out	Outlet		as gas_stream	(Brief="Outlet gas/liquid stream");
+	
+	EQUATIONS
+	"Oil std vol. Balance"
+#	Outlet.Qg*(Outlet.Rcg + Outlet.Rv) = 
+#		InletG.Qg*(InletG.Rcg + InletG.Rv) + InletL.Qf*InletL.Rgo*InletL.Rv;
+	Outlet.Qg*Outlet.Rv + Outlet.Qc = 
+		InletG.Qg*InletG.Rv + InletG.Qc + InletL.Qf*(1-InletL.BSW);
+
+	"Gas std vol. Balance"
+	Outlet.Qg + Outlet.Qc*Outlet.Rs = 
+		InletG.Qg + InletG.Qc*InletG.Rs + InletL.Qf*(1-InletL.BSW)*InletL.Rs;
+	
+	"Energy balance"
+	Outlet.Qg*Outlet.dg*rho_AIRstd*Outlet.hG = 
+		InletG.Qg*InletG.dg*rho_AIRstd*InletG.hG 
+		+ InletL.Qf*((1-InletL.BSW)*InletL.d60*rho_H2Ostd*InletL.hO + InletL.BSW*InletL.rho_Wstd*InletL.hW);
+
+	"Solution Gas/Oil Ratio - VAZQUEZ & BEGGS"
+	Outlet.Rs/'ft^3/bbl' = 0.0362*(Outlet.dg*(1 + 5.912e-5*(141.5/Outlet.d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+		*(Outlet.P/'psi')^1.0937*exp(25.724*(141.5/Outlet.d60-131.5)/(Outlet.T/'degR'));
+#	Outlet.Rs/'ft^3/bbl' = 0.0362*(Outlet.dgL*(1 + 5.912e-5*(141.5/Outlet.d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+#		*(Outlet.P/'psi')^1.0937*exp(25.724*(141.5/Outlet.d60-131.5)/(Outlet.T/'degR'));
+
+#	"Volatiled Oil/Gas Ratio - NASSAR et al."
+#	Outlet.Rv = 0.5*(1+tanh((Outlet.T/'degR'-459.67)/1e-6))*(4.7e-7*(Outlet.P/'psi')^2 - 1.4e-3*(Outlet.P/'psi') + 2.3)*
+#		exp(-3.7e-4*Outlet.dg*14.696)*exp(-460*Outlet.d60G/(Outlet.T/'degR'-459.67))*Outlet.Ycg;
+
+	"Volatiled Oil/Gas Ratio - TRICA & SANTOS"
+#	Outlet.Rv/'l/m^3' = (-1482.47 + 1751.75*Outlet.dg + 1058.168*Outlet.dg^2)*
+#		(Outlet.P/'psi')^(-0.187803)*exp(-5381.301*Outlet.d60/(Outlet.T/'degR'));
+	Outlet.Rv/'l/m^3' = (-1180.3 + 2170.793*Outlet.dg + 1153.42*Outlet.dg^2)*
+		(Outlet.P/'psi')^(-0.206009)*exp(-5085.453*Outlet.d60/(Outlet.T/'degR'));
+
+	"Property mixing rule for oil specific gravity (std. vol. balance)"
+#	Outlet.Qg*(Outlet.Rcg + Outlet.Rv)*Outlet.d60 = 
+#		InletG.Qg*(InletG.Rcg + InletG.Rv)*InletG.d60 + InletL.Qf*InletL.Rgo*InletL.Rv*InletL.d60;
+	Outlet.Qc*Outlet.d60 = 
+		InletG.Qc*InletG.d60 + InletL.Qf*(1-InletL.BSW)*InletL.d60;
+
+	"Property mixing rule for Tbn by means of Watson K-factor (std. vol. balance)"
+#	Outlet.Qg*(Outlet.Rcg + Outlet.Rv)*(Outlet.Tbn/'degR')^(1/3) = 
+#		InletG.Qg*(InletG.Rcg + InletG.Rv)*(InletG.Tbn/'degR')^(1/3) + InletL.Qf*InletL.Rgo*InletL.Rv*(InletL.Tbn/'degR')^(1/3);
+	Outlet.Qc*(Outlet.Tbn/'degR')^(1/3) = 
+		InletG.Qc*(InletG.Tbn/'degR')^(1/3) 
+		+ InletL.Qf*(1-InletL.BSW)*(InletL.Tbn/'degR')^(1/3);
+	
+	"Property mixing rule for gas specific gravity (std vol. balance)"
+#	Outlet.Qg*(1 + Outlet.Rcg*Outlet.Rs)*Outlet.dg = 
+#		InletG.Qg*(1 + InletG.Rcg*InletG.Rs)*InletG.dg + InletL.Qf*InletL.Rgo*InletL.dg;
+	Outlet.Qg*Outlet.dg = InletG.Qg*InletG.dg;
+
+	"Property mixing rule for Condensate/Gas yield (std. vol. balance)"
+#	Outlet.Qg*(1 + Outlet.Rcg*Outlet.Rs)*Outlet.Ycg = 
+#		InletG.Qg*(1 + InletG.Rcg*InletG.Rs)*InletG.Ycg + InletL.Qf*InletL.Rgo*InletL.Ycg;
+	Outlet.Qg*Outlet.Ycg = InletG.Qg*InletG.Ycg;
+	
+	"Mechanical equilibrium"
+	InletG.P = Outlet.P;
+	InletL.P = Outlet.P;
+end
+
+Model splitter2_gas
+	VARIABLES
+in	Inlet	as strG;
+out	Outlet1	as strG;
+out	Outlet2	as strG;
+
+	EQUATIONS
+	"Gas phase std. vol. flow balance"
+	Outlet1.Qg + Outlet2.Qg = Inlet.Qg;
+
+	"Oil phase std. vol. flow balance"
+	Outlet1.Qc + Outlet2.Qc = Inlet.Qc;
+
+	"Equate Inlet/Outlets"
+	Outlet1.P		= Inlet.P;
+	Outlet1.T		= Inlet.T;
+	Outlet1.hO		= Inlet.hO;
+	Outlet1.hG		= Inlet.hG;
+	Outlet1.Rs		= Inlet.Rs;
+	Outlet1.Rv		= Inlet.Rv;
+	Outlet1.Bo		= Inlet.Bo;
+	Outlet1.Bg		= Inlet.Bg;
+	Outlet1.rhoL	= Inlet.rhoL;
+	Outlet1.rhoG	= Inlet.rhoG;
+	Outlet1.d60		= Inlet.d60;
+	Outlet1.d60L	= Inlet.d60L;
+	Outlet1.Tbn		= Inlet.Tbn;
+	Outlet1.TbnL	= Inlet.TbnL;
+	Outlet1.dg		= Inlet.dg;
+	Outlet1.dgL		= Inlet.dgL;
+	Outlet1.Ycg		= Inlet.Ycg;
+	Outlet1.YcgL	= Inlet.YcgL;
+
+	Outlet2.P		= Inlet.P;
+	Outlet2.T		= Inlet.T;
+	Outlet2.hO		= Inlet.hO;
+	Outlet2.hG		= Inlet.hG;
+	Outlet2.Rs		= Inlet.Rs;
+	Outlet2.Rv		= Inlet.Rv;
+	Outlet2.Bo		= Inlet.Bo;
+	Outlet2.Bg		= Inlet.Bg;
+	Outlet2.rhoL	= Inlet.rhoL;
+	Outlet2.rhoG	= Inlet.rhoG;
+	Outlet2.d60		= Inlet.d60;
+	Outlet2.d60L	= Inlet.d60L;
+	Outlet2.Tbn		= Inlet.Tbn;
+	Outlet2.TbnL	= Inlet.TbnL;
+	Outlet2.dg		= Inlet.dg;
+	Outlet2.dgL		= Inlet.dgL;
+	Outlet2.Ycg		= Inlet.Ycg;
+	Outlet2.YcgL	= Inlet.YcgL;
+end
+
+Model splitter2_gas_ctrl
+	VARIABLES
+in	Inlet	as strG;
+out	Outlet1	as strG;
+out	Outlet2	as strG;
+in	qfrac	as fraction	(Brief="Std. vol. flow split fraction",Default=0.5);
+
+	EQUATIONS	
+	"Gas phase std. vol. flow balance"
+	Outlet1.Qg + Outlet2.Qg = Inlet.Qg;
+
+	"Oil phase std. vol. flow balance"
+	Outlet1.Qc + Outlet2.Qc = Inlet.Qc;
+
+	"Gas std. vol. flow split"
+	Outlet1.Qg = 0.5*(1+tanh((qfrac-1e-4)/1e-6))*qfrac*Inlet.Qg;
+
+	"Oil std. vol. flow split"
+	Outlet1.Qc = 0.5*(1+tanh((qfrac-1e-4)/1e-6))*qfrac*Inlet.Qc;
+
+	"Equate Inlet/Outlets"
+#	Outlet1.P		= Inlet.P;
+	Outlet1.T		= Inlet.T;
+	Outlet1.hO		= Inlet.hO;
+	Outlet1.hG		= Inlet.hG;
+	Outlet1.Rs		= Inlet.Rs;
+	Outlet1.Rv		= Inlet.Rv;
+	Outlet1.Bo		= Inlet.Bo;
+	Outlet1.Bg		= Inlet.Bg;
+	Outlet1.rhoL	= Inlet.rhoL;
+	Outlet1.rhoG	= Inlet.rhoG;
+	Outlet1.d60		= Inlet.d60;
+	Outlet1.d60L	= Inlet.d60L;
+	Outlet1.Tbn		= Inlet.Tbn;
+	Outlet1.TbnL	= Inlet.TbnL;
+	Outlet1.dg		= Inlet.dg;
+	Outlet1.dgL		= Inlet.dgL;
+	Outlet1.Ycg		= Inlet.Ycg;
+	Outlet1.YcgL	= Inlet.YcgL;
+
+	Outlet2.P		= Inlet.P;
+	Outlet2.T		= Inlet.T;
+	Outlet2.hO		= Inlet.hO;
+	Outlet2.hG		= Inlet.hG;
+	Outlet2.Rs		= Inlet.Rs;
+	Outlet2.Rv		= Inlet.Rv;
+	Outlet2.Bo		= Inlet.Bo;
+	Outlet2.Bg		= Inlet.Bg;
+	Outlet2.rhoL	= Inlet.rhoL;
+	Outlet2.rhoG	= Inlet.rhoG;
+	Outlet2.d60		= Inlet.d60;
+	Outlet2.d60L	= Inlet.d60L;
+	Outlet2.Tbn		= Inlet.Tbn;
+	Outlet2.TbnL	= Inlet.TbnL;
+	Outlet2.dg		= Inlet.dg;
+	Outlet2.dgL		= Inlet.dgL;
+	Outlet2.Ycg		= Inlet.Ycg;
+	Outlet2.YcgL	= Inlet.YcgL;
+end
+
+Model splitterGdry
+	PARAMETERS
+	numOfOutlets as Integer (Brief="Number of outlet streams",Lower=2,Default=2);
+	
+	VARIABLES
+in	Inlet					as strG;
+out	Outlet(numOfOutlets)	as strGdry;
+
+	EQUATIONS
+	"Gas phase std. vol. flow balance"
+	sum(Outlet.Qg) = Inlet.Qg;
+	
+	"Equate Inlet/Outlets"
+	Outlet.P		= Inlet.P;
+	Outlet.T		= Inlet.T;
+	Outlet.hG		= Inlet.hG;
+	Outlet.Rv		= Inlet.Rv;
+	Outlet.Bg		= Inlet.Bg;
+	Outlet.rhoG		= Inlet.rhoG;
+	Outlet.d60		= Inlet.d60;
+	Outlet.Tbn		= Inlet.Tbn;
+	Outlet.dg		= Inlet.dg;
+	Outlet.Ycg		= Inlet.Ycg;
+end
+
+Model splitter2_drygas
+	VARIABLES
+in	Inlet	as strGdry;
+out	Outlet1	as strGdry;
+out	Outlet2	as strGdry;
+
+	EQUATIONS
+	"Gas phase std. vol. flow balance"
+	Outlet1.Qg + Outlet2.Qg = Inlet.Qg;
+	
+	"Equate Inlet/Outlets"
+	Outlet1.P		= Inlet.P;
+	Outlet1.T		= Inlet.T;
+	Outlet1.hG		= Inlet.hG;
+	Outlet1.Rv		= Inlet.Rv;
+	Outlet1.Bg		= Inlet.Bg;
+	Outlet1.rhoG	= Inlet.rhoG;
+	Outlet1.d60		= Inlet.d60;
+	Outlet1.Tbn		= Inlet.Tbn;
+	Outlet1.dg		= Inlet.dg;
+	Outlet1.Ycg		= Inlet.Ycg;
+
+	Outlet2.P		= Inlet.P;
+	Outlet2.T		= Inlet.T;
+	Outlet2.hG		= Inlet.hG;
+	Outlet2.Rv		= Inlet.Rv;
+	Outlet2.Bg		= Inlet.Bg;
+	Outlet2.rhoG	= Inlet.rhoG;
+	Outlet2.d60		= Inlet.d60;
+	Outlet2.Tbn		= Inlet.Tbn;
+	Outlet2.dg		= Inlet.dg;
+	Outlet2.Ycg		= Inlet.Ycg;
+end
+
+Model splitter2_drygas_ctrl
+	VARIABLES
+in	Inlet	as strGdry;
+out	Outlet1	as strGdry;
+out	Outlet2	as strGdry;
+in	qfrac	as fraction	(Brief="Std. vol. flow split fraction",Default=0.5);
+
+	EQUATIONS	
+	"Gas phase std. vol. flow balance"
+	Outlet1.Qg + Outlet2.Qg = Inlet.Qg;
+
+	"Std. vol. flow split"
+	Outlet1.Qg = 0.5*(1+tanh((qfrac-1e-4)/1e-6))*qfrac*Inlet.Qg;
+
+	"Equate Inlet/Outlets"
+#	Outlet1.P		= Inlet.P;
+	Outlet1.T		= Inlet.T;
+	Outlet1.hG		= Inlet.hG;
+	Outlet1.Rv		= Inlet.Rv;
+	Outlet1.Bg		= Inlet.Bg;
+	Outlet1.rhoG	= Inlet.rhoG;
+	Outlet1.d60		= Inlet.d60;
+	Outlet1.Tbn		= Inlet.Tbn;
+	Outlet1.dg		= Inlet.dg;
+	Outlet1.Ycg		= Inlet.Ycg;
+
+	Outlet2.P		= Inlet.P;
+	Outlet2.T		= Inlet.T;
+	Outlet2.hG		= Inlet.hG;
+	Outlet2.Rv		= Inlet.Rv;
+	Outlet2.Bg		= Inlet.Bg;
+	Outlet2.rhoG	= Inlet.rhoG;
+	Outlet2.d60		= Inlet.d60;
+	Outlet2.Tbn		= Inlet.Tbn;
+	Outlet2.dg		= Inlet.dg;
+	Outlet2.Ycg		= Inlet.Ycg;
+end

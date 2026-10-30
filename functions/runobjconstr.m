@@ -27,8 +27,14 @@ nL = [];
 
 
 switch (solver)  % for each solver
+     case 'hysys'
+     solver = @hysys;
+     objective = @(ws)objfunc_hysys(x0,nss,tss,ws,ns,Nxo,nUt,w_frozen,check,...
+         ns_a,frozen,is,is0,w0,ts_frozen, solver,optODE,typ,reg,est,wLL, wUU,in_SPAIDER);
+     nonl_constraint = @(ws)constr_hysys(x0,nss,tss,ws,ns,Nxo,nUt,w_frozen,check,...
+         ns_a,frozen,is,is0,w0,ts_frozen, solver,optODE,typ,reg,est,wLL, wUU,in_SPAIDER);
       case 'mbo'
-     solve = '@ode15i';
+     solver = '@ode15i';
      objective = @(ws)objfunc_mbo(x0,nss,tss,ws,ns,Nxo,nUt,w_frozen,check,...
          ns_a,frozen,is,is0,w0,ts_frozen, solve,optODE,typ,reg,est,wLL, wUU,in_SPAIDER);
      nonl_constraint = @(ws)constr_mbo(x0,nss,tss,ws,ns,Nxo,nUt,w_frozen,check,...
@@ -54,11 +60,11 @@ switch (solver)  % for each solver
      nonl_constraint = @(ws)constr_odex(x0,nss,tss,ws,ns,Nxo,nUt,w_frozen,check,...
          ns_a,frozen,is,is0,w0,ts_frozen, solver.func,optODE,typ,reg,est,wLL, wUU,in_SPAIDER);
      case 'ode23s'   
-     solver.func = @ode23s;    
+     solver = @ode23s;    
      objective = @(ws)objfunc_odex(x0,nss,tss,ws,ns,Nxo,nUt,w_frozen,check,...
-         ns_a,frozen,is,is0,w0,ts_frozen, solver.func,optODE,typ,reg,est,wLL, wUU,in_SPAIDER);
+         ns_a,frozen,is,is0,w0,ts_frozen, solver,optODE,typ,reg,est,wLL, wUU,in_SPAIDER);
      nonl_constraint = @(ws)constr_ode(x0,nss,tss,ws,ns,Nxo,nUt,w_frozen,check,...
-         ns_a,frozen,is,is0,w0,ts_frozen, solver.func,optODE,typ,reg,est,wLL, wUU,in_SPAIDER);
+         ns_a,frozen,is,is0,w0,ts_frozen, solver,optODE,typ,reg,est,wLL, wUU,in_SPAIDER);
      case 'ode15s'
      solver= @ode15s;      
      objective = @(ws)objfunc_odex(x0,nss,tss,ws,ns,Nxo,nUt,w_frozen,check,...
@@ -94,8 +100,16 @@ end
  k=0; ki=1;  t_ult=[]; t_out=[]; yout=[]; n_elem=[];
  if ~isequal(ws,wsLast)  % Check if computation is necessary
      if nargout == 1
-         [f, t_ult, t_out, yout,n_elem] = function_ode( x0, ns, ts, ws, ne,n_s,n_c,...
-             w_froz,check,ns_a,frozen,is,is0,w0,ts_frozen,solver,optODE,typ,reg,est,optSPAIDER);
+             % [f, t_ult, t_out, yout,n_elem] = function_ode( x0, ns, ts, ws, ne,n_s,n_c,...
+             % w_froz,check,ns_a,frozen,is,is0,w0,ts_frozen,solver,optODE,typ,reg,est,optSPAIDER);
+
+             if strcmp(in_SPAIDER.problem.analitic_derivarive,'psens')
+                [f,t_ult,t_out,yout,n_elem] = function_ode_ps(  x0, ns, ts, ws, ne,n_s,n_c,...
+                w_froz,check,ns_a,frozen,is,is0,w0,ts_frozen,solver,optODE,typ,reg,est,optSPAIDER);
+             else
+                [f,t_ult,t_out,yout,n_elem] = function_ode(  x0, ns, ts, ws, ne,n_s,n_c,...
+                w_froz,check,ns_a,frozen,is,is0,w0,ts_frozen,solver,optODE,typ,reg,est,optSPAIDER);
+             end
          wsLast = ws;
          flast = f;
          tuL=t_ult;
@@ -104,8 +118,13 @@ end
          d2last = 1; % checking if df was atualized...
          nL = n_elem;
      else
-         [f,t_ult,t_out,yout,n_elem,df] = function_ode(  x0, ns, ts, ws, ne,n_s,n_c,...
+         if strcmp(in_SPAIDER.problem.analitic_derivarive,'psens')
+             [f,t_ult,t_out,yout,n_elem,df] = function_ode_ps(  x0, ns, ts, ws, ne,n_s,n_c,...
              w_froz,check,ns_a,frozen,is,is0,w0,ts_frozen,solver,optODE,typ,reg,est,optSPAIDER);
+         else
+             [f,t_ult,t_out,yout,n_elem,df] = function_ode(  x0, ns, ts, ws, ne,n_s,n_c,...
+             w_froz,check,ns_a,frozen,is,is0,w0,ts_frozen,solver,optODE,typ,reg,est,optSPAIDER);
+         end
         wsLast = ws;
         flast = f;
         dflast = df;
@@ -140,8 +159,15 @@ end
             if d2last==2
                 df = dflast;
             else
-                [f,t_ult,t_out,yout,n_elem,df] = function_ode(  x0, ns, ts, ws, ne,n_s,n_c,...
-             w_froz,check,ns_a,frozen,is,is0,w0,ts_frozen,solver,optODE,typ,reg,est,optSPAIDER); 
+             %    [f,t_ult,t_out,yout,n_elem,df] = function_ode(  x0, ns, ts, ws, ne,n_s,n_c,...
+             % w_froz,check,ns_a,frozen,is,is0,w0,ts_frozen,solver,optODE,typ,reg,est,optSPAIDER); 
+                        if strcmp(in_SPAIDER.problem.analitic_derivarive,'psens')
+                         [f,t_ult,t_out,yout,n_elem,df] = function_ode_ps(  x0, ns, ts, ws, ne,n_s,n_c,...
+                         w_froz,check,ns_a,frozen,is,is0,w0,ts_frozen,solver,optODE,typ,reg,est,optSPAIDER);
+                        else
+                        [f,t_ult,t_out,yout,n_elem,df] = function_ode(  x0, ns, ts, ws, ne,n_s,n_c,...
+                        w_froz,check,ns_a,frozen,is,is0,w0,ts_frozen,solver,optODE,typ,reg,est,optSPAIDER);
+                         end
             end
         [J dJ]= obf2(f,t_ult,t_out,df,wsN,yout);
          dflast = df;

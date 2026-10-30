@@ -1,0 +1,532 @@
+using "tristream";
+
+Model hex_liq_basics
+	ATTRIBUTES
+	Brief 	= "Basic equations of heat exchangers for liquid inlet streams";
+	Info 	= 
+		"Model valid only for liquid streams or triphase streams 
+		with small Rgo (< 10 m^3/m^3)";
+
+	PARAMETERS
+	g			as constant 	(Brief="Gravity acceleration",Default=9.80665,Unit='m/s^2');
+	rho_H2Ostd	as dens_mass	(Brief="Water density at std. cond.",Default=999.054);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+#	Cf			as area			(Brief="Flow coefficient",DisplayUnit='cm^2',Default=0.1);
+	
+	VARIABLES
+in	Inlet	as str3ph;
+out	Outlet	as triphase_stream;
+	
+	DP			as positive	(Brief="Pressure drop",Unit='kPa',Default=10);
+
+	Rseq		as positive	(Brief="Solution gas-oil ratio at equilibrium",Unit='m^3/m^3',Default=10);
+	SumInletGas	as positive	(Brief="Sum of inlet streams gas std. vol. flow",Unit='m^3/d',Default=2e5);
+	Gunbal		as Real		(Brief="Gas std. vol. unbalance",Unit='m^3/d',Default=0);
+	
+	EQUATIONS
+#	"Pressure-flow relation"
+#	Inlet.Qf*((1-Inlet.BSW)*Inlet.d60*rho_H2Ostd + Inlet.BSW*Inlet.rho_Wstd) = 
+#		Cf*sqrt(Inlet.rhoL*(Inlet.P - Outlet.P));
+
+	"Oil std. vol. balance"
+#	Inlet.Qf*(1-Inlet.BSW)*(1 + Inlet.Rgo*Inlet.Rv) = 
+#		Outlet.Qf*(1-Outlet.BSW)*(1 + Outlet.Rgo*Outlet.Rv);
+	Inlet.Qf*(1-Inlet.BSW) + Inlet.Qg*Inlet.Rv = 
+		Outlet.Qf*(1-Outlet.BSW) + Outlet.Qg*Outlet.Rv;
+
+#	"Gas std. vol. balance"
+#	Inlet.Qf*(Inlet.Rgo + Inlet.Rs) = Outlet.Qf*(Outlet.Rgo + Outlet.Rs);
+
+	"Sum of inlet streams gas std. vol."
+	SumInletGas = Inlet.Qf*Inlet.Rs + Inlet.Qg;
+
+	"Gas std. vol. unbalance"
+	Gunbal = Outlet.Qf*Rseq - (Inlet.Qf*Inlet.Rs + Inlet.Qg);
+
+	"Std. vol. balance for liberated gas"
+	Outlet.Qg = 0.5*(1+tanh(-Gunbal/'m^3/d'/1e-6))*(-Gunbal);
+#	Outlet.Qg = 0.5*(1+tanh(-Gunbal/'m^3/d'/1e-2))*(-Gunbal);
+
+	"Std. vol. balance for solution gas-oil ratio"
+	Outlet.Qf*Outlet.Rs = 0.5*(1+tanh(Gunbal/'m^3/d'/1e-6))*SumInletGas
+		+ 0.5*(1+tanh(-Gunbal/'m^3/d'/1e-6))*Outlet.Qf*Rseq;
+#	Outlet.Qf*Outlet.Rs = 0.5*(1+tanh(Gunbal/'m^3/d'/1e-2))*SumInletGas
+#		+ 0.5*(1+tanh(-Gunbal/'m^3/d'/1e-2))*Outlet.Qf*Rseq;
+
+	"Water std. vol. balance"
+#	Outlet.BSW = Inlet.BSW;
+	Outlet.Qf*Outlet.BSW = Inlet.Qf*Inlet.BSW;
+
+	"Water salt mass balance"
+	Outlet.ws = Inlet.ws;
+#	Outlet.Qf*Outlet.BSW*Outlet.rho_Wstd*Outlet.ws = Inlet.Qf*Inlet.BSW*Inlet.rho_Wstd*Inlet.ws;
+	
+	"Pressure drop"
+	DP = Inlet.P - Outlet.P;
+
+	"Solution Gas/Oil Ratio - VAZQUEZ & BEGGS"
+	Rseq/'ft^3/bbl' = 0.0362*(Outlet.dgL*(1 + 5.912e-5*(141.5/Outlet.d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+		*(Outlet.P/'psi')^1.0937*exp(25.724*(141.5/Outlet.d60-131.5)/(Outlet.T/'degR'));
+
+#	"Volatiled Oil/Gas Ratio - NASSAR et al."
+#	Outlet.Rv = 0.5*(1+tanh((Outlet.T/'degR'-459.67)/1e-6))*(4.7e-7*(Outlet.P/'psi')^2 - 1.4e-3*(Outlet.P/'psi') + 2.3)*
+#		exp(-3.7e-4*Outlet.dg*14.696)*exp(-460*Outlet.d60G/(Outlet.T/'degR'-459.67))*Outlet.Ycg;
+
+	"Volatiled Oil/Gas Ratio - TRICA & SANTOS"
+#	Outlet.Rv/'l/m^3' = (188.6572 + 78.9191*Outlet.dg + 37.43328*Outlet.dg^2)*
+#		(Outlet.P/'psi')^(-0.20)*exp(-60.00*(141.5/Outlet.d60G-131.5)/(Outlet.T/'degR'));
+#	Outlet.Rv/'l/m^3' = (-1482.47 + 1751.75*Outlet.dg + 1058.168*Outlet.dg^2)*
+#		(Outlet.P/'psi')^(-0.187803)*exp(-5381.301*Outlet.d60G/(Outlet.T/'degR'));
+	Outlet.Rv/'l/m^3' = (-1180.3 + 2170.793*Outlet.dg + 1153.42*Outlet.dg^2)*
+		(Outlet.P/'psi')^(-0.206009)*exp(-5085.453*Outlet.d60G/(Outlet.T/'degR'));
+
+	"Equates of outlet stream compositional variables"
+	Outlet.d60 = Inlet.d60;
+	Outlet.Tbn = Inlet.Tbn;
+	Outlet.dg = Inlet.dg;
+	Outlet.Ycg = Inlet.Ycg;
+end
+
+Model heater_liq as hex_liq_basics
+	VARIABLES
+	Qin		as power	(Brief="Heat applied to the system",DisplayUnit='MW',Default=16000);
+	
+	EQUATIONS
+	"Energy balance"
+#	Qin + Inlet.Qf*(1-Inlet.BSW)*Inlet.d60*rho_H2Ostd*Inlet.hO
+#		+ Inlet.Qf*Inlet.BSW*Outlet.rho_Wstd*Inlet.hW
+#		+ Inlet.Qf*(1-Inlet.BSW)*Inlet.Rgo*rho_AIRstd*Inlet.dg*Inlet.hG 
+#	=
+#	Outlet.Qf*(1-Outlet.BSW)*Outlet.d60*rho_H2Ostd*Outlet.hO
+#		+ Outlet.Qf*Outlet.BSW*Outlet.rho_Wstd*Outlet.hW
+#		+ Outlet.Qf*(1-Outlet.BSW)*Outlet.Rgo*rho_AIRstd*Outlet.dg*Outlet.hG;
+	Qin + Inlet.Qf*((1-Inlet.BSW)*Inlet.d60*rho_H2Ostd*Inlet.hO + Inlet.BSW*Inlet.rho_Wstd*Inlet.hW)
+		+ Inlet.Qg*Inlet.dg*rho_AIRstd*Inlet.hG
+	=
+		  Outlet.Qf*((1-Outlet.BSW)*Outlet.d60*rho_H2Ostd*Outlet.hO + Outlet.BSW*Outlet.rho_Wstd*Outlet.hW)
+		+ Outlet.Qg*Outlet.dg*rho_AIRstd*Outlet.hG;
+end
+
+Model cooler_liq as hex_liq_basics
+	VARIABLES
+	Qout	as power	(Brief="Heat removed from the system",DisplayUnit='MW',Default=16000);
+	
+	EQUATIONS
+	"Energy balance"
+	Inlet.Qf*((1-Inlet.BSW)*Inlet.d60*rho_H2Ostd*Inlet.hO + Inlet.BSW*Inlet.rho_Wstd*Inlet.hW)
+		+ Inlet.Qg*Inlet.dg*rho_AIRstd*Inlet.hG
+	=
+	Qout + Outlet.Qf*((1-Outlet.BSW)*Outlet.d60*rho_H2Ostd*Outlet.hO + Outlet.BSW*Outlet.rho_Wstd*Outlet.hW)
+		 + Outlet.Qg*Outlet.dg*rho_AIRstd*Outlet.hG;
+end
+
+Model hexch_liq
+	ATTRIBUTES
+	Brief 	= "Model for liquid/liquid streams heat exchanger equipment";
+	Info 	= 
+		"Model valid only for liquid streams or triphase streams 
+		with small Rgo (< 10 m^3/m^3)";
+
+	PARAMETERS
+	rho_H2Ostd	as dens_mass	(Brief="Water density at std. cond.",Default=999.054);
+	Tref		as temperature	(Brief="Zero enthalpy reference",Default=288.70556);
+	UA			as positive		(Brief="Global heat transfer coefficient",Unit='kW/K',Default=1600);
+	
+	VARIABLES
+	Cold 		as heater_liq;
+	ColdMax		as heater_liq;
+	Hot			as cooler_liq;
+	HotMax		as cooler_liq;
+	
+	Qexch		as power		(Brief="Heat exchanged",DisplayUnit='MW',Default=16000);
+	Qmax		as power		(Brief="Maximum Heat exchanged",DisplayUnit='MW',Default=20000);
+	Ccold		as positive		(Brief="Cold heat capacity rate",Unit='kW/K',Default=800);
+	Chot		as positive		(Brief="Hot heat capacity rate",Unit='kW/K',Default=640);
+	Cr			as fraction		(Brief="Heat capacity ratio",Default=0.8);
+	Cmin		as positive		(Brief="Minimum Heat capacity",Unit='kW/K',Default=640);
+	Cmax		as positive		(Brief="Maximum Heat capacity",Unit='kW/K',Default=800);
+	eff			as fraction		(Brief="Heat exchanger efficiency",Default=0.8);
+	NTU			as positive		(Brief="Number of transfer units",Default=3);
+
+	EQUATIONS
+	"Thermodynamic heat limits"
+	ColdMax.Outlet.T = Hot.Inlet.T;
+	HotMax.Outlet.T = Cold.Inlet.T;
+
+	"Cold side/Hot side energy balance"
+	Cold.Qin = Qexch;
+	Hot.Qout = Cold.Qin;
+	
+	"Cold side/Hot side pressure drop"
+	ColdMax.DP = Cold.DP;
+	HotMax.DP = Hot.DP;
+
+	"Cold heat capacity rate"
+	Ccold = 
+		ColdMax.Inlet.Qf*(1-ColdMax.Inlet.BSW)*ColdMax.Inlet.d60*rho_H2Ostd*'Btu/lb/degR'*(
+			(-1.17126+(0.023722+0.024907*ColdMax.Inlet.d60)*((ColdMax.Inlet.Tbn/'degR')^(1/3)/ColdMax.Inlet.d60) 
+				+ (1.14982-0.046535*((ColdMax.Inlet.Tbn/'degR')^(1/3)/ColdMax.Inlet.d60))/ColdMax.Inlet.d60)
+			+ (1/2)*1e-4*(1+0.82463*((ColdMax.Inlet.Tbn/'degR')^(1/3)/ColdMax.Inlet.d60))*(1.12172-0.27634/ColdMax.Inlet.d60)*(707.67^2-(Tref/'degR')^2)/(707.67-(Tref/'degR'))
+			- (1/3)*1e-8*(1+0.82463*((ColdMax.Inlet.Tbn/'degR')^(1/3)/ColdMax.Inlet.d60))*(2.9027-0.70958/ColdMax.Inlet.d60)*(707.67^3-(Tref/'degR')^3)/(707.67-(Tref/'degR'))
+			) +
+		ColdMax.Inlet.Qf*ColdMax.Inlet.BSW*ColdMax.Inlet.rho_Wstd*'kJ/kg/K'*(
+			4.18 - ColdMax.Inlet.ws*(ColdMax.Inlet.rho_Wstd/'kg/m^3')/ColdMax.Inlet.Bw*
+				(4.396e-3 - 4.8e-6*ColdMax.Inlet.ws*(ColdMax.Inlet.rho_Wstd/'kg/m^3')/ColdMax.Inlet.Bw)
+		);
+
+	"Hot heat capacity rate"
+	Chot = 
+		HotMax.Inlet.Qf*(1-HotMax.Inlet.BSW)*HotMax.Inlet.d60*rho_H2Ostd*'Btu/lb/degR'*(
+			(-1.17126+(0.023722+0.024907*HotMax.Inlet.d60)*((HotMax.Inlet.Tbn/'degR')^(1/3)/HotMax.Inlet.d60) 
+				+ (1.14982-0.046535*((HotMax.Inlet.Tbn/'degR')^(1/3)/HotMax.Inlet.d60))/HotMax.Inlet.d60)
+			+ (1/2)*1e-4*(1+0.82463*((HotMax.Inlet.Tbn/'degR')^(1/3)/HotMax.Inlet.d60))*(1.12172-0.27634/HotMax.Inlet.d60)*(707.67^2-(Tref/'degR')^2)/(707.67-(Tref/'degR'))
+			- (1/3)*1e-8*(1+0.82463*((HotMax.Inlet.Tbn/'degR')^(1/3)/HotMax.Inlet.d60))*(2.9027-0.70958/HotMax.Inlet.d60)*(707.67^3-(Tref/'degR')^3)/(707.67-(Tref/'degR'))
+			) +
+		HotMax.Inlet.Qf*HotMax.Inlet.BSW*HotMax.Inlet.rho_Wstd*'kJ/kg/K'*(
+			4.18 - HotMax.Inlet.ws*(HotMax.Inlet.rho_Wstd/'kg/m^3')/HotMax.Inlet.Bw*
+				(4.396e-3 - 4.8e-6*HotMax.Inlet.ws*(HotMax.Inlet.rho_Wstd/'kg/m^3')/HotMax.Inlet.Bw)
+		);
+
+	"Number of transfer units"
+	NTU*Cmin = UA;
+
+	"Max/Min Heat capacity"
+	Cmax = max([Ccold,Chot]);
+	Cmin = min([Ccold,Chot]);
+	
+	"Heat Capacity ratio"
+	Cr*Cmax = Cmin;
+
+	"Heat transfer effectiveness: Counter-current flow"
+	eff*(1-Cr*exp(-NTU*(1-Cr))) = (1-exp(-NTU*(1-Cr)));
+
+	"Maximum Heat exchanged"
+	Qmax = min([ColdMax.Qin,HotMax.Qout]);
+
+	"Heat transfered effectiveness"
+	Qexch = eff*Qmax;
+end
+
+Model hex_gas_basics
+	ATTRIBUTES
+	Brief 	= "Basic equations of heat exchangers for dry gas inlet streams only";
+
+	PARAMETERS
+	g			as constant 	(Brief="Gravity acceleration",Default=9.80665,Unit='m/s^2');
+	rho_H2Ostd	as dens_mass	(Brief="Water density at std. cond.",Default=999.054);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	Cf			as area			(Brief="Flow coefficient",DisplayUnit='cm^2',Default=0.1);
+	
+	VARIABLES
+in	Inlet	as strG;
+out	Outlet	as gas_stream;
+
+	DP			as positive	(Brief="Pressure drop",Unit='kPa',Default=10);
+
+	Rveq		as positive	(Brief="Volatiled oil-gas ratio at equilibrium",Unit='l/m^3',Default=0.05);
+	SumInletOil	as positive	(Brief="Sum of inlet streams oil std. vol. flow",Unit='m^3/d',Default=1e2);
+	Ounbal		as Real		(Brief="Oil std. vol. unbalance",Unit='m^3/d',Default=0);
+	
+	EQUATIONS
+	"Pressure-flow relation"
+#	Outlet.Qg*Outlet.dg*rho_AIRstd = Cf*sqrt(DP*Inlet.rhoG);
+	Inlet.Qg*Inlet.dg*rho_AIRstd = Cf*sqrt(DP*Inlet.rhoG);
+
+#	"Oil std. vol. balance"
+#	Outlet.Qg*(Outlet.Rcg + Outlet.Rv) = Inlet.Qg*(Inlet.Rcg + Inlet.Rv);
+
+	"Sum of inlet streams oil std. vol."
+	SumInletOil = Inlet.Qg*Inlet.Rv + Inlet.Qc;
+
+	"Oil std. vol. unbalance"
+	Ounbal = Outlet.Qg*Rveq - (Inlet.Qg*Inlet.Rv + Inlet.Qc);
+
+	"Std. vol. balance for condensed oil"
+	Outlet.Qc = 0.5*(1+tanh(-Ounbal/'m^3/d'/1e-6))*(-Ounbal);
+#	Outlet.Qc = 0.5*(1+tanh(-Ounbal/'m^3/d'/1e-2))*(-Ounbal);
+
+	"Std. vol. balance for volatiled oil-gas ratio"
+	Outlet.Qg*Outlet.Rv = 0.5*(1+tanh(Ounbal/'m^3/d'/1e-6))*SumInletOil
+		+ 0.5*(1+tanh(-Ounbal/'m^3/d'/1e-6))*Outlet.Qg*Rveq;
+#	Outlet.Qg*Outlet.Rv = 0.5*(1+tanh(Ounbal/'m^3/d'/1e-2))*SumInletOil
+#		+ 0.5*(1+tanh(-Ounbal/'m^3/d'/1e-2))*Outlet.Qg*Rveq;
+
+	"Gas std. vol. balance"
+#	Inlet.Qg*(1 + Inlet.Rcg*Inlet.Rs) = Outlet.Qg*(1 + Outlet.Rcg*Outlet.Rs);
+	Inlet.Qg + Inlet.Qc*Inlet.Rs = Outlet.Qg + Outlet.Qc*Outlet.Rs;
+	
+	"Pressure drop"
+	DP = Inlet.P - Outlet.P;
+
+	"Solution Gas/Oil Ratio - VAZQUEZ & BEGGS"
+	Outlet.Rs/'ft^3/bbl' = 0.0362*(Outlet.dgL*(1+5.912e-5*(141.5/Outlet.d60L-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+		*(Outlet.P/'psi')^1.0937*exp(25.724*(141.5/Outlet.d60L-131.5)/(Outlet.T/'degR'));
+
+#	"Volatiled Oil/Gas Ratio - NASSAR et al."
+#	Rveq = 0.5*(1+tanh((Outlet.T/'degR'-459.67)/1e-6))*(4.7e-7*(Outlet.P/'psi')^2 - 1.4e-3*(Outlet.P/'psi') + 2.3)*
+#		exp(-3.7e-4*Outlet.dg*14.696)*exp(-460*Outlet.d60/(Outlet.T/'degR'-459.67))*Outlet.Ycg;
+
+	"Volatiled Oil/Gas Ratio - TRICA & SANTOS"
+#	Rveq/'l/m^3' = (-1482.47 + 1751.75*Outlet.dg + 1058.168*Outlet.dg^2)*
+#		(Outlet.P/'psi')^(-0.187803)*exp(-5381.301*Outlet.d60/(Outlet.T/'degR'));
+	Rveq/'l/m^3' = (-1180.3 + 2170.793*Outlet.dg + 1153.42*Outlet.dg^2)*
+		(Outlet.P/'psi')^(-0.206009)*exp(-5085.453*Outlet.d60/(Outlet.T/'degR'));
+
+	"Equates of outlet stream compositional variables"
+	Outlet.d60 = Inlet.d60;
+	Outlet.Tbn = Inlet.Tbn;
+	Outlet.dg = Inlet.dg;
+	Outlet.Ycg = Inlet.Ycg;
+end
+
+Model heater_gas as hex_gas_basics
+	VARIABLES
+	Qin		as power	(Brief="Heat applied to the system",DisplayUnit='MW',Default=4000);
+	
+	EQUATIONS
+	"Energy balance"
+	Qin + Inlet.Qg*Inlet.dg*rho_AIRstd*Inlet.hG 
+		+ Inlet.Qc*Inlet.d60L*rho_H2Ostd*Inlet.hO
+		=
+	Outlet.Qg*Outlet.dg*rho_AIRstd*Outlet.hG 
+		+ Outlet.Qc*Outlet.d60L*rho_H2Ostd*Outlet.hO;
+end
+
+Model cooler_gas as hex_gas_basics
+	VARIABLES
+	Qout	as power	(Brief="Heat removed from the system",DisplayUnit='MW',Default=4000);
+	
+	EQUATIONS
+	"Energy balance"
+	Inlet.Qg*Inlet.dg*rho_AIRstd*Inlet.hG 
+		 + Inlet.Qc*Inlet.d60L*rho_H2Ostd*Inlet.hO
+		=
+	Qout + Outlet.Qg*Outlet.dg*rho_AIRstd*Outlet.hG 
+		 + Outlet.Qc*Outlet.d60L*rho_H2Ostd*Outlet.hO;
+end
+
+Model hexch_gas
+	ATTRIBUTES
+	Brief 	= "Model for gas/gas streams heat exchanger equipment";
+	Info 	= "Model valid only for gas inlet streams only"; 
+
+	PARAMETERS
+	R			as positive		(Brief="Ideal Gas Constant",Unit='kJ/kmol/K',Default=8.31447);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	Tref		as temperature	(Brief="Reference temperature for std. cond.",Default=288.70556);
+	UA			as positive		(Brief="Global heat transfer coefficient",Unit='kW/K',Default=1600);
+
+	SET
+	ColdMax.Cf = Cold.Cf;
+	HotMax.Cf = Hot.Cf;
+
+	VARIABLES
+	Cold 		as heater_gas;
+	ColdMax		as heater_gas;
+	Hot			as cooler_gas;
+	HotMax		as cooler_gas;
+	
+	Qexch		as power		(Brief="Heat exchanged",DisplayUnit='MW',Default=16000);
+	Qmax		as power		(Brief="Maximum Heat exchanged",DisplayUnit='MW',Default=20000);
+	Ccold		as positive		(Brief="Cold heat capacity rate",Unit='kW/K',Default=800);
+	Chot		as positive		(Brief="Hot heat capacity rate",Unit='kW/K',Default=640);
+	Cr			as fraction		(Brief="Heat capacity ratio",Default=0.8);
+	Cmin		as positive		(Brief="Minimum Heat capacity",Unit='kW/K',Default=640);
+	Cmax		as positive		(Brief="Maximum Heat capacity",Unit='kW/K',Default=800);
+	eff			as fraction		(Brief="Heat exchanger efficiency",Default=0.8);
+	NTU			as positive		(Brief="Number of transfer units",Default=3);
+
+	EQUATIONS
+	"Thermodynamic heat limits"
+	ColdMax.Outlet.T = Hot.Inlet.T;
+	HotMax.Outlet.T = Cold.Inlet.T;
+
+	"Cold side/Hot side energy balance"
+	Cold.Qin = Qexch;
+	Hot.Qout = Cold.Qin;
+	
+#	"Cold side/Hot side pressure drop"
+#	ColdMax.DP = Cold.DP;
+#	HotMax.DP = Hot.DP;
+
+	"Cold heat capacity rate"
+	Ccold = 
+		ColdMax.Inlet.Qg*rho_AIRstd*R/(29*'kg/kmol')*(
+			(0.7457*ColdMax.Inlet.dg^2 - 1.3405*ColdMax.Inlet.dg + 2.222) +
+			1e-3*(19.894*ColdMax.Inlet.dg - 1.902)*((ColdMax.Inlet.T/'K')-(Tref/'K')) +
+			1e-6*(-6.6562*ColdMax.Inlet.dg + 1.5103)*((ColdMax.Inlet.T/'K')^2-(Tref/'K')^2)
+			);
+
+	"Hot heat capacity rate"
+	Chot = 
+		HotMax.Inlet.Qg*rho_AIRstd*R/(29*'kg/kmol')*(
+			(0.7457*HotMax.Inlet.dg^2 - 1.3405*HotMax.Inlet.dg + 2.222) +
+			1e-3*(19.894*HotMax.Inlet.dg - 1.902)*((HotMax.Inlet.T/'K')-(Tref/'K')) +
+			1e-6*(-6.6562*HotMax.Inlet.dg + 1.5103)*((HotMax.Inlet.T/'K')^2-(Tref/'K')^2)
+			);
+
+	"Number of transfer units"
+	NTU*Cmin = UA;
+
+	"Max/Min Heat capacity"
+	Cmax = max([Ccold,Chot]);
+	Cmin = min([Ccold,Chot]);
+	
+	"Heat Capacity ratio"
+	Cr*Cmax = Cmin;
+
+	"Heat transfer effectiveness: Counter-current flow"
+	eff*(1-Cr*exp(-NTU*(1-Cr))) = (1-exp(-NTU*(1-Cr)));
+
+	"Maximum Heat exchanged"
+	Qmax = min([ColdMax.Qin,HotMax.Qout]);
+
+	"Heat transfered effectiveness"
+	Qexch = eff*Qmax;
+end
+
+Model hexch_hliq_cgas
+	ATTRIBUTES
+	Brief 	= 	"Model for gas/liquid streams heat exchanger equipment for heat liquid and cool gas";
+	Info 	= 	"Model valid only for dry gas at cooler_gas and liquid inlet or triphase streams
+				with samll Rgo (< 10 m^3/m^3) at heater_liq"; 
+
+	PARAMETERS
+	R			as positive		(Brief="Ideal Gas Constant",Unit='kJ/kmol/K',Default=8.31447);
+	rho_H2Ostd	as dens_mass	(Brief="Water density at std. cond.",Default=999.054);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	Tref		as temperature	(Brief="Reference temperature for std. cond.",Default=288.70556);
+	UA			as positive		(Brief="Global heat transfer coefficient",Unit='kW/K',Default=1600);
+	
+	SET
+	HotMax.Cf = Hot.Cf;
+	
+	VARIABLES
+	Cold 		as heater_liq;
+	ColdMax		as heater_liq;
+	Hot			as cooler_gas;
+	HotMax		as cooler_gas;
+	
+	Qexch		as power		(Brief="Heat exchanged",DisplayUnit='MW',Default=16000);
+	Qmax		as power		(Brief="Maximum Heat exchanged",DisplayUnit='MW',Default=20000);
+	Ccold		as positive		(Brief="Cold heat capacity rate",Unit='kW/K',Default=800);
+	Chot		as positive		(Brief="Hot heat capacity rate",Unit='kW/K',Default=640);
+	Cr			as fraction		(Brief="Heat capacity ratio",Default=0.8);
+	Cmin		as positive		(Brief="Minimum Heat capacity",Unit='kW/K',Default=640);
+	Cmax		as positive		(Brief="Maximum Heat capacity",Unit='kW/K',Default=800);
+	eff			as fraction		(Brief="Heat exchanger efficiency",Default=0.8);
+	NTU			as positive		(Brief="Number of transfer units",Default=3);
+
+	EQUATIONS
+	"Thermodynamic heat limits"
+	ColdMax.Outlet.T = Hot.Inlet.T;
+	HotMax.Outlet.T = Cold.Inlet.T;
+
+	"Cold side/Hot side energy balance"
+	Cold.Qin = Qexch;
+	Hot.Qout = Cold.Qin;
+	
+	"Cold side/Hot side pressure drop"
+	ColdMax.DP = Cold.DP;
+#	HotMax.DP = Hot.DP;
+
+	"Cold heat capacity rate"
+	Ccold = 
+		ColdMax.Inlet.Qf*(1-ColdMax.Inlet.BSW)*ColdMax.Inlet.d60*rho_H2Ostd*'Btu/lb/degR'*(
+			(-1.17126+(0.023722+0.024907*ColdMax.Inlet.d60)*((ColdMax.Inlet.Tbn/'degR')^(1/3)/ColdMax.Inlet.d60) 
+				+ (1.14982-0.046535*((ColdMax.Inlet.Tbn/'degR')^(1/3)/ColdMax.Inlet.d60))/ColdMax.Inlet.d60)
+			+ (1/2)*1e-4*(1+0.82463*((ColdMax.Inlet.Tbn/'degR')^(1/3)/ColdMax.Inlet.d60))*(1.12172-0.27634/ColdMax.Inlet.d60)*(707.67^2-(Tref/'degR')^2)/(707.67-(Tref/'degR'))
+			- (1/3)*1e-8*(1+0.82463*((ColdMax.Inlet.Tbn/'degR')^(1/3)/ColdMax.Inlet.d60))*(2.9027-0.70958/ColdMax.Inlet.d60)*(707.67^3-(Tref/'degR')^3)/(707.67-(Tref/'degR'))
+			) +
+		ColdMax.Inlet.Qf*ColdMax.Inlet.BSW*ColdMax.Inlet.rho_Wstd*'kJ/kg/K'*(
+			4.18 - ColdMax.Inlet.ws*(ColdMax.Inlet.rho_Wstd/'kg/m^3')/ColdMax.Inlet.Bw*
+				(4.396e-3 - 4.8e-6*ColdMax.Inlet.ws*(ColdMax.Inlet.rho_Wstd/'kg/m^3')/ColdMax.Inlet.Bw)
+		);
+
+	"Hot heat capacity rate"
+	Chot = 
+		HotMax.Inlet.Qg*rho_AIRstd*R/(29*'kg/kmol')*(
+			(0.7457*HotMax.Inlet.dg^2 - 1.3405*HotMax.Inlet.dg + 2.222) +
+			1e-3*(19.894*HotMax.Inlet.dg - 1.902)*((HotMax.Inlet.T/'K')-(Tref/'K')) +
+			1e-6*(-6.6562*HotMax.Inlet.dg + 1.5103)*((HotMax.Inlet.T/'K')^2-(Tref/'K')^2)
+			);
+
+	"Number of transfer units"
+	NTU*Cmin = UA;
+
+	"Max/Min Heat capacity"
+	Cmax = max([Ccold,Chot]);
+	Cmin = min([Ccold,Chot]);
+	
+	"Heat Capacity ratio"
+	Cr*Cmax = Cmin;
+
+	"Heat transfer effectiveness: Counter-current flow"
+	eff*(1-Cr*exp(-NTU*(1-Cr))) = (1-exp(-NTU*(1-Cr)));
+
+	"Maximum Heat exchanged"
+	Qmax = min([ColdMax.Qin,HotMax.Qout]);
+
+	"Heat transfered effectiveness"
+	Qexch = eff*Qmax;
+end
+
+Model hex_drygas_basics
+	ATTRIBUTES
+	Brief 	= "Basic equations of heat exchangers for dry gas inlet streams only";
+
+	PARAMETERS
+	g			as constant 	(Brief="Gravity acceleration",Default=9.80665,Unit='m/s^2');
+	rho_H2Ostd	as dens_mass	(Brief="Water density at std. cond.",Default=999.054);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	Cf			as area			(Brief="Flow coefficient",DisplayUnit='cm^2',Default=0.1);
+	
+	VARIABLES
+in	Inlet	as strGdry;
+out	Outlet	as drygas_stream;
+
+	DP			as positive	(Brief="Pressure drop",Unit='kPa',Default=10);
+	
+	EQUATIONS
+	"Pressure-flow relation"
+	Inlet.Qg*Inlet.dg*rho_AIRstd = Cf*sqrt(DP*Inlet.rhoG);
+
+	"Std. vol. balance for volatiled oil-gas ratio"
+	Outlet.Rv = Inlet.Rv;
+
+	"Gas std. vol. balance"
+	Inlet.Qg = Outlet.Qg;
+	
+	"Pressure drop"
+	DP = Inlet.P - Outlet.P;
+
+#	"Solution Gas/Oil Ratio - VAZQUEZ & BEGGS"
+#	Outlet.Rs/'ft^3/bbl' = 0.0362*(Outlet.dgL*(1+5.912e-5*(141.5/Outlet.d60L-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+#		*(Outlet.P/'psi')^1.0937*exp(25.724*(141.5/Outlet.d60L-131.5)/(Outlet.T/'degR'));
+
+#	"Volatiled Oil/Gas Ratio - NASSAR et al."
+#	Rveq = 0.5*(1+tanh((Outlet.T/'degR'-459.67)/1e-6))*(4.7e-7*(Outlet.P/'psi')^2 - 1.4e-3*(Outlet.P/'psi') + 2.3)*
+#		exp(-3.7e-4*Outlet.dg*14.696)*exp(-460*Outlet.d60/(Outlet.T/'degR'-459.67))*Outlet.Ycg;
+
+#	"Volatiled Oil/Gas Ratio - TRICA & SANTOS"
+#	Rveq/'l/m^3' = (-1482.47 + 1751.75*Outlet.dg + 1058.168*Outlet.dg^2)*
+#		(Outlet.P/'psi')^(-0.187803)*exp(-5381.301*Outlet.d60/(Outlet.T/'degR'));
+#	Rveq/'l/m^3' = (-1180.3 + 2170.793*Outlet.dg + 1153.42*Outlet.dg^2)*
+#		(Outlet.P/'psi')^(-0.206009)*exp(-5085.453*Outlet.d60/(Outlet.T/'degR'));
+
+	"Equates of outlet stream compositional variables"
+	Outlet.d60 = Inlet.d60;
+	Outlet.Tbn = Inlet.Tbn;
+	Outlet.dg = Inlet.dg;
+	Outlet.Ycg = Inlet.Ycg;
+end
+
+Model cooler_drygas as hex_drygas_basics
+	VARIABLES
+	Qout	as power	(Brief="Heat removed from the system",DisplayUnit='MW',Default=4000);
+	
+	EQUATIONS
+	"Energy balance"
+	Inlet.Qg*Inlet.dg*rho_AIRstd*Inlet.hG =
+		Qout + Outlet.Qg*Outlet.dg*rho_AIRstd*Outlet.hG;
+end

@@ -1,0 +1,111 @@
+#*-------------------------------------------------------------------
+* EMSO Model Library (EML) Copyright (C) 2004 - 2007 ALSOC.
+*
+* This LIBRARY is free software; you can distribute it and/or modify
+* it under the therms of the ALSOC FREE LICENSE as available at
+* http://www.enq.ufrgs.br/alsoc.
+*
+* EMSO Copyright (C) 2004 - 2007 ALSOC, original code
+* from http://www.rps.eng.br Copyright (C) 2002-2004.
+* All rights reserved.
+*
+* EMSO is distributed under the therms of the ALSOC LICENSE as
+* available at http://www.enq.ufrgs.br/alsoc.
+*
+*--------------------------------------------------------------------
+* Sample file for batch distillation with controllers
+*--------------------------------------------------------------------
+* 
+* This sample file needs VRTherm DEMO (www.vrtech.com.br) to run.
+*
+*----------------------------------------------------------------------
+* Author: 
+* $Id: sample_batch_dist_PID.mso 633 2008-09-24 00:26:30Z bicca $
+*--------------------------------------------------------------------*#
+using "stage_separators/batch_dist";
+using "controllers/PIDs";
+
+FlowSheet TesteBatch_PID
+	
+	PARAMETERS
+	PP		as Plugin(Brief="Physical Properties",
+		Type="PP", Components = [ "isobutane", "benzene" ],
+		LiquidModel = "PR", VapourModel = "PR");
+	NComp	as Integer;
+	P_max	as pressure(Brief="Maximum Pressure on distillator");
+	P_min	as pressure(Brief="Minimum Pressure on distillator");
+	
+	VARIABLES
+	P_ad 	as fraction(Brief="Dimensionless pressure");
+	P_set	as pressure(Brief="Minimum Pressure on distillator");
+
+	SET
+	NComp = PP.NumberOfComponents;
+	
+	DEVICES
+	batch 	as Diff_Dist;
+	reflux 	as liquid_stream;
+	feed	as source;
+	pidP	as PID;
+	Q		as energy_source;
+	
+	CONNECTIONS
+	reflux to batch.InletL;
+	feed.Outlet to batch.Inlet;
+	Q.OutletQ to batch.InletQ;
+
+	EQUATIONS
+	if batch.Level > 1E-3 then
+		Q.OutletQ.Q = 3.7743e6 * 'kJ/h';
+	else
+		Q.OutletQ.Q = 0 * 'kJ/h';
+	end
+
+    "Pressure Controller"
+	pidP.Parameters.tau = 0*'s';	
+	pidP.Parameters.tauSet = 0*'s';	
+	pidP.Parameters.alpha = 0.3;
+	pidP.Parameters.bias = 0;	
+	pidP.Parameters.gamma = 1;
+	pidP.Parameters.beta = 1;
+	pidP.Options.action = -1;
+	pidP.Options.clip = 1;
+	pidP.Options.autoMan = 0;
+	pidP.Parameters.intTime = 0.1*'min';
+	pidP.Parameters.gain = 1;
+	pidP.Parameters.derivTime = 0.02*'min';
+	pidP.Ports.setPoint = (P_set-P_min)/(P_max-P_min);
+	pidP.Ports.input = P_ad;
+	P_ad = (batch.P-P_min)/(P_max-P_min);
+	batch.OutletV.F = 500 * 'kmol/h' * pidP.Ports.output;
+
+	SPECIFY
+	reflux.F = 0 * 'kmol/h';
+	reflux.T = 328 * 'K';
+	reflux.P = 180 * 'kPa';
+	reflux.z = [0.5, 0.5];
+	
+	feed.F = 0 * 'kmol/h';
+	feed.T = 328 * 'K';
+	feed.P = 180 * 'kPa';
+	feed.Composition = [0.5, 0.5];
+
+	P_set = 300 * 'kPa';
+	batch.tal = 1;
+	SET
+	pidP.PID_Select = "Ideal_AWBT";
+	batch.V = 3 * 'm^3';
+	batch.Across = 1 * 'm^2';
+	P_max = 500 * 'kPa';
+	P_min = 100 * 'kPa';
+	
+	INITIAL
+	batch.T = 298 *'K';
+	batch.Level = 2.5 * 'm';
+	batch.x(2) = 0.2;
+	
+	OPTIONS
+	TimeEnd = 6;
+	TimeStep = 0.01;
+	TimeUnit = 'min';
+end

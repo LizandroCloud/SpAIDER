@@ -1,0 +1,725 @@
+using "tristream";
+using "PID";
+using "pressure_changers";
+using "thermal_changers";
+using "mixers_splitters";
+using "separators";
+
+Model UnitOilTreatment
+	VARIABLES
+#INLET TRIPHASE STREAM AND WATER RECYCLE MIXER	
+	InletMix	as mixer2_W3ph;
+
+#TRIPHASE SEPARATOR AND AUXILIARY DEVICES
+	SG_001 		as triphase_separator;
+
+	FE_001		as valv_drygas;
+	FIT_001		as volflow_transmitter;
+
+	LIT_001		as level_transmitter;
+	LIC_001		as PID_pos;
+	LV_001		as valv_liq_ctrl;
+
+	LIT_002		as level_transmitter;
+	LIC_002		as PID_pos;
+	LV_002		as valv_water_ctrl;
+
+#OIL TO TREAT STREAM AND CONDENSATE FROM GAS PLANT STREAMS MIXER
+	CondMix		as mixer3ph;
+
+#HEAT EXCHANGER BATTERY AND AUXILIARY DEVICES
+	P_001		as hexch_liq;
+	P_002		as heater_liq;
+	
+	TIT_001		as temperature_transmitter;
+	TIC_001		as PID_pos;
+
+#PRE-OIL TREATMENT AND AUXILIARY DEVICES
+	V_TO_001	as degasser;
+	SPT_001		as splitter2_drygas;
+	TO_001		as oil_treater;
+	B_001		as pump_water;
+
+#	PIT_002		as pressure_transmitter;
+#	PIC_002		as PID_pos;
+#	PV_002		as valv_drygas_ctrl;
+
+	PIT_002A	as pressure_transmitter;
+	PIC_002A	as PID_pos;
+	PV_002A		as valv_drygas_ctrl;
+
+	PIT_002B	as pressure_transmitter;
+	PIC_002B	as PID_pos;
+	PV_002B		as valv_drygas_ctrl;
+
+	LIT_003		as level_transmitter;
+	LIC_003		as PID_pos;
+	LV_003		as valv_liq_ctrl;
+
+	LIT_004		as level_transmitter;
+	LIC_004		as PID_pos;
+	LV_004		as valv_water_ctrl;	
+
+#OIL TO DESALT STREAM AND SALT-FREE WATER MIXER
+	DesaltMix	as mixer2_W3ph;
+
+#OIL TREATMENT AND AUXILIARY DEVICES		
+	V_TO_002	as degasser;
+	SPT_002		as splitter2_drygas;
+	TO_002		as oil_treater;
+	B_002		as pump_water;
+	B_003		as pump_liq;
+
+#	PIT_003		as pressure_transmitter;
+#	PIC_003		as PID_pos;
+#	PV_003		as valv_drygas_ctrl;
+
+	PIT_003A	as pressure_transmitter;
+	PIC_003A	as PID_pos;
+	PV_003A		as valv_drygas_ctrl;
+
+	PIT_003B	as pressure_transmitter;
+	PIC_003B	as PID_pos;
+	PV_003B		as valv_drygas_ctrl;
+
+	LIT_005		as level_transmitter;
+	LIC_005		as PID_pos;
+	LV_005		as valv_liq_ctrl;
+
+	LIT_006		as level_transmitter;
+	LIC_006		as PID_pos;
+	LV_006		as valv_water_ctrl;
+
+#WATER STREAMS FROM OIL TREATERS COLLECTING AND RECYCLE
+	recycW		as mixerW;
+	
+	CONNECTIONS
+#FROM INLET TRIPHASE STREAM AND WATER RECYCLE MIXER TO TRIPHASE SEPARATOR
+	recycW.Outlet			to InletMix.InletW;
+	InletMix.Outlet			to SG_001.Inlet;
+	SG_001.OutletG			to FE_001.Inlet;
+	SG_001.OutletL 			to LV_001.Inlet;
+	SG_001.OutletW 			to LV_002.Inlet;
+
+#TRIPHASE SEPARATOR OUTLET GAS STD. VOL. FLOW TRANSMITTER
+	SG_001.OutletG.Qg		to FIT_001.PVinput;
+
+#TRIPHASE SEPARATOR LIGHT CHAMBER LEVEL CONTROL
+	SG_001.LevelCL			to LIT_001.PVinput;
+	LIT_001.PVoutput		to LIC_001.PV;
+	LIT_001.SPoutput		to LIC_001.SP;
+	LIC_001.MVoutput 		to LV_001.MVinput;
+
+#TRIPHASE SEPARATOR SEPARATION CHAMBER WATER (INTERFACE) LEVEL CONTROL
+	SG_001.LevelWCS			to LIT_002.PVinput;
+	LIT_002.PVoutput		to LIC_002.PV;
+	LIT_002.SPoutput		to LIC_002.SP;
+	LIC_002.MVoutput 		to LV_002.MVinput;
+
+#FROM TRIPHASE SEPARATOR OUTLET LIQUID STREAMS TO HEAT EXCHANGER BATTERY
+	LV_001.Outlet			to CondMix.Inlet(1);
+	CondMix.Outlet			to P_001.Cold.Inlet;
+	CondMix.Outlet			to P_001.ColdMax.Inlet;
+	P_001.Cold.Outlet		to P_002.Inlet;
+
+#HEAT EXCHANGER OIL OUTLET STREAM TEMPERATURE CONTROL
+	P_002.Outlet.T			to TIT_001.PVinput;
+	TIT_001.PVoutput		to TIC_001.PV;
+	TIT_001.SPoutput		to TIC_001.SP;
+
+#FROM HEAT EXCHANGER BATTERY TO PRE-OIL TREATMENT
+	P_002.Outlet			to V_TO_001.Inlet;
+#	V_TO_001.OutletG		to PV_002.Inlet;
+	V_TO_001.OutletG		to SPT_001.Inlet;
+	SPT_001.Outlet1			to PV_002A.Inlet;
+	SPT_001.Outlet2			to PV_002B.Inlet;
+	V_TO_001.OutletL		to TO_001.Inlet;
+	TO_001.OutletL			to LV_003.Inlet;
+	TO_001.OutletW 			to B_001.Inlet;
+	B_001.Outlet			to LV_004.Inlet;
+
+#PRE-OIL DEGASSER PRESSURE CONTROL
+#	V_TO_001.OutletG.P		to PIT_002.PVinput;
+#	PIT_002.PVoutput		to PIC_002.PV;
+#	PIT_002.SPoutput		to PIC_002.SP;
+#	PIC_002.MVoutput 		to PV_002.MVinput;
+
+#PRE-OIL DEGASSER PRESSURE CONTROL
+	V_TO_001.OutletG.P		to PIT_002A.PVinput;
+	PIT_002A.PVoutput		to PIC_002A.PV;
+	PIT_002A.SPoutput		to PIC_002A.SP;
+	PIC_002A.MVoutput 		to PV_002A.MVinput;
+
+#PRE-OIL DEGASSER PRESSURE CONTROL
+	V_TO_001.OutletG.P		to PIT_002B.PVinput;
+	PIT_002B.PVoutput		to PIC_002B.PV;
+	PIT_002B.SPoutput		to PIC_002B.SP;
+	PIC_002B.MVoutput 		to PV_002B.MVinput;
+
+#PRE-OIL DEGASSER LEVEL CONTROL
+	V_TO_001.Level			to LIT_003.PVinput;
+	LIT_003.PVoutput		to LIC_003.PV;
+	LIT_003.SPoutput		to LIC_003.SP;
+	LIC_003.MVoutput 		to LV_003.MVinput;
+
+#PRE-OIL TREATER WATER (INTERFACE) CONTROLE
+	TO_001.LevelW			to LIT_004.PVinput;
+	LIT_004.PVoutput		to LIC_004.PV;
+	LIT_004.SPoutput		to LIC_004.SP;
+	LIC_004.MVoutput 		to LV_004.MVinput;	
+
+#FROM PRE-OIL TREATER LIGHT OUTLET STREAM TO DESALT MIXER
+	LV_003.Outlet			to DesaltMix.InletF;
+	DesaltMix.Outlet		to V_TO_002.Inlet;
+
+#FROM DESALT MIXER TO OIL TREATMENT
+#	V_TO_002.OutletG		to PV_003.Inlet;
+	V_TO_002.OutletG		to SPT_002.Inlet;
+	SPT_002.Outlet1			to PV_003A.Inlet;
+	SPT_002.Outlet2			to PV_003B.Inlet;
+	V_TO_002.OutletL		to TO_002.Inlet;
+	TO_002.OutletL			to B_003.Inlet;
+	B_003.Outlet			to LV_005.Inlet;
+	LV_005.Outlet 			to P_001.Hot.Inlet;
+	LV_005.Outlet 			to P_001.HotMax.Inlet;	
+	TO_002.OutletW 			to B_002.Inlet;
+	B_002.Outlet			to LV_006.Inlet;
+
+#OIL DEGASSER PRESSURE CONTROL
+#	V_TO_002.OutletG.P		to PIT_003.PVinput;
+#	PIT_003.PVoutput		to PIC_003.PV;
+#	PIT_003.SPoutput		to PIC_003.SP;
+#	PIC_003.MVoutput 		to PV_003.MVinput;
+
+#OIL DEGASSER PRESSURE CONTROL
+	V_TO_002.OutletG.P		to PIT_003A.PVinput;
+	PIT_003A.PVoutput		to PIC_003A.PV;
+	PIT_003A.SPoutput		to PIC_003A.SP;
+	PIC_003A.MVoutput 		to PV_003A.MVinput;
+
+#OIL DEGASSER PRESSURE CONTROL
+	V_TO_002.OutletG.P		to PIT_003B.PVinput;
+	PIT_003B.PVoutput		to PIC_003B.PV;
+	PIT_003B.SPoutput		to PIC_003B.SP;
+	PIC_003B.MVoutput 		to PV_003B.MVinput;
+
+#OIL DEGASSER LEVEL CONTROL
+	V_TO_002.Level			to LIT_005.PVinput;
+	LIT_005.PVoutput		to LIC_005.PV;
+	LIT_005.SPoutput		to LIC_005.SP;
+	LIC_005.MVoutput 		to LV_005.MVinput;
+
+#OIL TREATER WATER (INTERFACE) CONTROLE
+	TO_002.LevelW			to LIT_006.PVinput;
+	LIT_006.PVoutput		to LIC_006.PV;
+	LIT_006.SPoutput		to LIC_006.SP;
+	LIC_006.MVoutput 		to LV_006.MVinput;
+
+#FROM OIL TREATERS WATER STREAMS TO INLET TRIPHASE SEPARATOR RECYCLE
+	LV_004.Outlet			to recycW.Inlet(1);
+	LV_006.Outlet			to recycW.Inlet(2);
+
+	SET
+#TRIPHASE SEPARATOR PARAMETERS
+	SG_001.hweir = 2.15 * 'm';
+	SG_001.LCS = 16.5 * 'm';
+	SG_001.LCL = 2.5 * 'm';
+	SG_001.D = 4.3 * 'm';
+
+#TRIPHASE SEPARATOR OUTLET GAS FLOW ELEMENT AND TRANSMITTER
+	FE_001.Cv = 3000*'gal/min';
+	FE_001.Fgamma = 0.8;
+	FE_001.xT = 0.7;
+
+	FIT_001.RangeMax = 6e6*'m^3/d';
+	FIT_001.RangeMin = 0*'m^3/d';
+
+#TRIPHASE SEPARATOR OIL LEVEL CONTROLLER
+	LIT_001.RangeMax = 3*'m';
+	LIT_001.RangeMin = 0*'m';
+	LIC_001.action = "Direct";
+
+#TRIPHASE SEPARATOR OIL LEVEL FINAL ELEMENT
+	LV_001.Cv = 800 * 'gal/min';
+	LV_001.FL = 0.91;
+
+#TRIPHASE SEPARATOR WATER LEVEL CONTROLLER
+	LIT_002.RangeMax = 3*'m';
+	LIT_002.RangeMin = 0*'m';
+	LIC_002.action = "Direct";
+	
+#TRIPHASE SEPARATOR WATER LEVEL FINAL ELEMENT
+	LV_002.Cv = 500 * 'gal/min';
+	LV_002.FL = 0.91;
+
+#HEAT EXCHANGER BATERRY PARAMETERS
+	P_001.UA = 1600*'kW/K';
+
+#HEAT EXCHANGER BATERRY PARAMETERS TEMPERATURE CONTROLLER
+	TIT_001.RangeMax = (120+273.15)*'K';
+	TIT_001.RangeMin = (0+273.15)*'K';
+	TIC_001.action = "Reverse";
+
+#CONDENSATE FROM GAS PLANT TO PRE-OIL DEGASSER MIXER PARAMETERS
+	CondMix.numOfInlets = 4;
+
+#PRE-OIL DEGASSER PARAMETERS
+	V_TO_001.L = 9.45 * 'm';
+	V_TO_001.D = 3.15 * 'm';
+	
+#PRE-OIL TREATER PARAMETERS
+	TO_001.L = 15.0 * 'm';
+	TO_001.D = 4.3 * 'm';
+	TO_001.TRL50 = 210*'s';
+	TO_001.b = 3.6;
+
+#PRE-OIL DEGASSER PRESSURE CONTROLLER
+#	PIT_002.RangeMax = 1500*'kPa';
+#	PIT_002.RangeMin = 0*'kPa';
+#	PIC_002.action = "Direct";
+
+#PRE-OIL DEGASSER PRESSURE FINAL ELEMENT
+#	PV_002.Cv = 360 * 'gal/min';
+#	PV_002.Fgamma = 0.8;
+#	PV_002.xT = 0.7;
+
+#PRE-OIL DEGASSER PRESSURE CONTROLLER
+	PIT_002A.RangeMax = 1500*'kPa';
+	PIT_002A.RangeMin = 0*'kPa';
+	PIC_002A.action = "Direct";
+
+#PRE-OIL DEGASSER PRESSURE FINAL ELEMENT
+	PV_002A.Cv = 360 * 'gal/min';
+	PV_002A.Fgamma = 0.8;
+	PV_002A.xT = 0.7;
+
+#PRE-OIL DEGASSER PRESSURE CONTROLLER
+	PIT_002B.RangeMax = 1500*'kPa';
+	PIT_002B.RangeMin = 0*'kPa';
+	PIC_002B.action = "Direct";
+
+#PRE-OIL DEGASSER PRESSURE FINAL ELEMENT
+	PV_002B.Cv = 60 * 'gal/min';
+	PV_002B.Fgamma = 0.8;
+	PV_002B.xT = 0.7;
+
+#PRE-OIL DEGASSER LEVEL CONTROLLER
+	LIT_003.RangeMax = 3.15*'m';
+	LIT_003.RangeMin = 0*'m';
+	LIC_003.action = "Direct";
+
+#PRE-OIL DEGASSER LEVEL FINAL ELEMENT
+	LV_003.Cv = 1000 * 'gal/min';
+	LV_003.FL = 0.91;
+
+#PRE-OIL TREATER WATER LEVEL CONTROLLER
+	LIT_004.RangeMax = 4.3*'m';
+	LIT_004.RangeMin = 0*'m';
+	LIC_004.action = "Direct";
+	
+#PRE-OIL TREATER WATER LEVEL FINAL ELEMENT
+	LV_004.Cv = 270 * 'gal/min';
+	LV_004.FL = 0.91;
+
+#PRE-OIL TREATER WATER RECYCLE PUMP
+	B_001.A = 4e-4*'h^2/m^5';
+	B_001.h0 = 300*'m';
+
+#DEGASSER PARAMETERS
+	V_TO_002.L = 9.45 * 'm';
+	V_TO_002.D = 3.15 * 'm';
+
+#OIL TREATER PARAMETERS
+	TO_002.L = 15.0 * 'm';
+	TO_002.D = 4.3 * 'm';
+	TO_002.TRL50 = 210*'s';
+	TO_002.b = 3.6;
+
+#DEGASSER PRESSURE CONTROLLER
+#	PIT_003.RangeMax = 500*'kPa';
+#	PIT_003.RangeMin = 0*'kPa';
+#	PIC_003.action = "Direct";	
+
+#DEGASSER PRESSURE FINAL ELEMENT
+#	PV_003.Cv = 150 * 'gal/min';
+#	PV_003.Fgamma = 0.8;
+#	PV_003.xT = 0.7;
+
+#DEGASSER PRESSURE CONTROLLER
+	PIT_003A.RangeMax = 500*'kPa';
+	PIT_003A.RangeMin = 0*'kPa';
+	PIC_003A.action = "Direct";	
+
+#DEGASSER PRESSURE FINAL ELEMENT
+	PV_003A.Cv = 150 * 'gal/min';
+	PV_003A.Fgamma = 0.8;
+	PV_003A.xT = 0.7;
+	
+#DEGASSER PRESSURE CONTROLLER
+	PIT_003B.RangeMax = 500*'kPa';
+	PIT_003B.RangeMin = 0*'kPa';
+	PIC_003B.action = "Direct";	
+
+#DEGASSER PRESSURE FINAL ELEMENT
+	PV_003B.Cv = 50 * 'gal/min';
+	PV_003B.Fgamma = 0.8;
+	PV_003B.xT = 0.7;
+
+#DEGASSER OIL LEVEL CONTROLLER
+	LIT_005.RangeMax = 3.15*'m';
+	LIT_005.RangeMin = 0*'m';
+	LIC_005.action = "Direct";
+
+#DEGASSER OIL LEVEL FINAL ELEMENT
+	LV_005.Cv = 1800 * 'gal/min';
+	LV_005.FL = 0.91;
+
+#OIL TREATER WATER LEVEL CONTROLLER
+	LIT_006.RangeMax = 4.3*'m';
+	LIT_006.RangeMin = 0*'m';
+	LIC_006.action = "Direct";
+	
+#OIL TREATER WATER LEVEL FINAL ELEMENT
+	LV_006.Cv = 60 * 'gal/min';
+	LV_006.FL = 0.91;
+
+#OIL TREATER WATER RECYCLE PUMP
+	B_002.A = 1.2e-2*'h^2/m^5';
+	B_002.h0 = 300*'m';
+
+#PRE-OIL TREATER WATER RECYCLE PUMP
+	B_003.A = 1.2e-6*'h^2/m^5';
+	B_003.h0 = 50*'m';
+end
+
+FlowSheet UOTR
+	
+	VARIABLES
+	talx as Real;
+	u as Real;
+	
+	PARAMETERS
+	rho_H2Ostd	as dens_mass(Brief="Pure water density at std. cond.",Default=999.054);	
+	Patm		as pressure	(Brief="Atmospheric pressure",DisplayUnit='kPa',Default=1);
+	
+	
+	DEVICES
+	feed		as triphase_source;
+	cond2		as triphase_source;
+	cond3		as triphase_source;
+	cond4		as triphase_source;
+	wdesalt		as water_source;
+
+	UOTR 		as UnitOilTreatment;
+
+	str2stock 	as triphase_sink;
+	str2UWTR	as water_sink;
+	str2UGTR	as drygas_sink;
+
+	CONNECTIONS
+	feed.Outlet				to 	UOTR.InletMix.InletF;
+	cond2.Outlet			to 	UOTR.CondMix.Inlet(2);
+	cond3.Outlet			to 	UOTR.CondMix.Inlet(3);
+	cond4.Outlet			to 	UOTR.CondMix.Inlet(4);
+	wdesalt.Outlet			to 	UOTR.DesaltMix.InletW;
+	
+	UOTR.P_001.Hot.Outlet	to	str2stock.Inlet;
+	UOTR.LV_002.Outlet		to	str2UWTR.Inlet;
+	UOTR.FE_001.Outlet		to 	str2UGTR.Inlet;
+
+	SPECIFY
+	talx = 36000;
+	u = 1;
+	
+#feed CONDIDTIONS
+	feed.Outlet.Qf	= 24000*u * 'm^3/d';
+	feed.Rgo 		= 200 * 'm^3/m^3';
+	feed.Outlet.BSW	= 0.2;
+	feed.Cws 		= 255*'g/l';
+	feed.Outlet.T 	= (40+273.15) * 'K';
+	feed.API		= 29;
+	feed.Kw			= 11.3;
+	feed.Outlet.dg 	= 0.7;
+	feed.Outlet.Ycg = 4*'l/m^3';
+
+#cond2 CONDIDTIONS (future from UMCP_guess.rlt)
+	cond2.Outlet.Qf 	= 1000 * 'm^3/d';
+	cond2.Outlet.Qg 	= 3.25358 * cond2.Outlet.Qf;
+	cond2.Outlet.BSW 	= 0.00;
+	cond2.Outlet.ws 	= 0.00;
+	cond2.Outlet.T 		= 312.316 * 'K';
+	cond2.Outlet.d60 	= 0.8017;
+	cond2.Outlet.Tbn 	= 331.383 * 'K';
+	cond2.Outlet.dg 	= 0.9;
+	cond2.Outlet.Ycg 	= 4 * 'l/m^3';
+
+#cond3 CONDIDTIONS (from UGKO_guess.rlt)
+	cond3.Outlet.Qf 	= 1320.17 * 'm^3/d';
+	cond3.Outlet.Qg 	= 5017.95 * 'm^3/d';
+	cond3.Outlet.BSW 	= 0.00;
+	cond3.Outlet.ws 	= 0.00;
+	cond3.Outlet.T 		= 312.502 * 'K';
+	cond3.Outlet.d60 	= 0.91439;
+	cond3.Outlet.Tbn 	= 685.459 * 'K';
+	cond3.Outlet.dg 	= 1.47102;
+	cond3.Outlet.Ycg 	= 8.40121 * 'l/m^3';
+
+#cond4 CONDIDTIONS (from UHDP_guess.rlt)
+	cond4.Outlet.Qf 	= 1562.76 * 'm^3/d';
+	cond4.Outlet.Qg 	= 69309.5 * 'm^3/d';
+	cond4.Outlet.BSW 	= 0.00;
+	cond4.Outlet.ws 	= 0.00;
+	cond4.Outlet.T 		= 268.134 * 'K';
+	cond4.Outlet.d60 	= 0.860497;
+	cond4.Outlet.Tbn 	= 777.425 * 'K';
+	cond4.Outlet.dg 	= 0.6557;
+	cond4.Outlet.Ycg 	= 2.42105 * 'l/m^3';
+
+#wdesalt STREAM CONDITIONS
+	wdesalt.Outlet.Qw 	= 50 * 'm^3/h';
+	wdesalt.Outlet.T 	= (80+273.15) * 'K';
+	wdesalt.Cws 		= 50*'g/l';
+	wdesalt.Outlet.TOG 	= 0.00 *'ml/m^3';
+	wdesalt.Outlet.d60 	= 0.88162;
+	wdesalt.Outlet.Tbn 	= 549.247 * 'K';
+
+#TRIPHASE SEPARATOR FLOW ELEMENT ORIFICE PERCENT OPEN AND TRANSMITTER SP
+	UOTR.FE_001.c = 1.0;
+	UOTR.FIT_001.SPinput = 6e6*'m^3/d';
+
+#TRIPHASE SEPARATOR OIL LEVEL CONTROLLER TUNNING
+	UOTR.LIT_001.SPinput = 1.5*'m';
+	UOTR.LIC_001.KC = 4;
+	UOTR.LIC_001.TI = 600*'s';
+	UOTR.LIC_001.TD = 0*'s';
+	UOTR.LIC_001.mode = 0; #Auto
+	UOTR.LIC_001.MVinput = UOTR.LIC_001.MVoutput;
+
+#TRIPHASE SEPARATOR WATER (INTERFACE) LEVEL CONTROLLER TUNNING
+	UOTR.LIT_002.SPinput = 0.15*'m';
+	UOTR.LIC_002.KC = 4;
+	UOTR.LIC_002.TI = 600*'s';
+	UOTR.LIC_002.TD = 0*'s';
+	UOTR.LIC_002.mode = 0; #Auto
+	UOTR.LIC_002.MVinput = UOTR.LIC_002.MVoutput;
+
+#HEAT EXCHANGER BATTERY SPECIFICATIONS
+	UOTR.P_001.Hot.DP = 70*'kPa';
+	UOTR.P_001.Cold.DP = 70*'kPa';
+	UOTR.P_002.DP = 70*'kPa';
+	
+#HEAT EXCHANGER BATTERY TEMPERATURE CONTROLLER TUNNING
+	UOTR.TIT_001.SPinput = (80+273.15)*'K';
+	UOTR.TIC_001.KC = 1;
+	UOTR.TIC_001.TI = 60*'s';
+	UOTR.TIC_001.TD = 0*'s';
+	UOTR.TIC_001.mode = 0;
+	UOTR.TIC_001.MVinput = UOTR.TIC_001.MVoutput;
+	UOTR.P_002.Qin = (0 + (25 - 0)*UOTR.TIC_001.MVoutput)*'MW';
+
+#PREOIL -DEGASSER PRESSURE CONTROLLER TUNNING
+#	UOTR.PIT_002.SPinput = 700*'kPa' + Patm;
+#	UOTR.PIC_002.KC = 1;
+#	UOTR.PIC_002.TI = 60*'s';
+#	UOTR.PIC_002.TD = 0*'s';
+#	UOTR.PIC_002.mode = 0; #Auto
+#	UOTR.PIC_002.MVinput = UOTR.PIC_002.MVoutput;
+
+	UOTR.PIT_002A.SPinput = 700*'kPa' + Patm;
+	UOTR.PIC_002A.KC = 1;
+	UOTR.PIC_002A.TI = 60*'s';
+	UOTR.PIC_002A.TD = 0*'s';
+	UOTR.PIC_002A.mode = 0; #Auto
+	UOTR.PIC_002A.MVinput = UOTR.PIC_002A.MVoutput;
+#	UOTR.PIC_002A.mode = 1; #Man
+#	UOTR.PIC_002A.MVinput = 0.00;
+
+	UOTR.PIT_002B.SPinput = 750*'kPa' + Patm;
+	UOTR.PIC_002B.KC = 4;
+	UOTR.PIC_002B.TI = 20*'s';
+	UOTR.PIC_002B.TD = 0*'s';
+	UOTR.PIC_002B.mode = 0; #Auto
+	UOTR.PIC_002B.MVinput = UOTR.PIC_002B.MVoutput;
+#	UOTR.PIC_002B.mode = 1; #Man
+#	UOTR.PIC_002B.MVinput = 0.00;
+
+#PRE-OIL DEGASSER OIL LEVEL CONTROLLER TUNNING
+	UOTR.LIT_003.SPinput = 1.0*'m';
+	UOTR.LIC_003.KC = 4;
+	UOTR.LIC_003.TI = 600*'s';
+	UOTR.LIC_003.TD = 0*'s';
+	UOTR.LIC_003.mode = 0; #Auto
+	UOTR.LIC_003.MVinput = UOTR.LIC_003.MVoutput;
+
+#PRE-OIL TREATER WATER LEVEL CONTROLLER TUNNING
+	UOTR.LIT_004.SPinput = 2.0*'m';
+	UOTR.LIC_004.KC = 4;
+	UOTR.LIC_004.TI = 600*'s';
+	UOTR.LIC_004.TD = 0*'s';
+	UOTR.LIC_004.mode = 0; #Auto
+	UOTR.LIC_004.MVinput = UOTR.LIC_004.MVoutput;
+
+#DEGASSER PRESSURE CONTROLLER TUNNING
+#	UOTR.PIT_003.SPinput = 200*'kPa' + Patm;
+#	UOTR.PIC_003.KC = 1;
+#	UOTR.PIC_003.TI = 60*'s';
+#	UOTR.PIC_003.TD = 0*'s';
+#	UOTR.PIC_003.mode = 0; #Auto
+#	UOTR.PIC_003.MVinput = UOTR.PIC_003.MVoutput;
+
+	UOTR.PIT_003A.SPinput = 200*'kPa' + Patm;
+	UOTR.PIC_003A.KC = 1;
+	UOTR.PIC_003A.TI = 60*'s';
+	UOTR.PIC_003A.TD = 0*'s';
+	UOTR.PIC_003A.mode = 0; #Auto
+	UOTR.PIC_003A.MVinput = UOTR.PIC_003A.MVoutput;
+#	UOTR.PIC_003A.mode = 1; #Man
+#	UOTR.PIC_003A.MVinput = 0.00;
+
+	UOTR.PIT_003B.SPinput = 220*'kPa' + Patm;
+	UOTR.PIC_003B.KC = 3;
+	UOTR.PIC_003B.TI = 30*'s';
+	UOTR.PIC_003B.TD = 0*'s';
+	UOTR.PIC_003B.mode = 0; #Auto
+	UOTR.PIC_003B.MVinput = UOTR.PIC_003B.MVoutput;
+#	UOTR.PIC_003B.mode = 1; #Man
+#	UOTR.PIC_003B.MVinput = 0.00;
+
+#DEGASSER OIL LEVEL CONTROLLER TUNNING
+	UOTR.LIT_005.SPinput = 1.0*'m';
+	UOTR.LIC_005.KC = 4;
+	UOTR.LIC_005.TI = 600*'s';
+	UOTR.LIC_005.TD = 0*'s';
+	UOTR.LIC_005.mode = 0; #Auto
+	UOTR.LIC_005.MVinput = UOTR.LIC_005.MVoutput;
+
+#OIL TREATER WATER LEVEL CONTROLLER
+	UOTR.LIT_006.SPinput = 2.0*'m';
+	UOTR.LIC_006.KC = 4;
+	UOTR.LIC_006.TI = 600*'s';
+	UOTR.LIC_006.TD = 0*'s';
+	UOTR.LIC_006.mode = 0; #Auto
+	UOTR.LIC_006.MVinput = UOTR.LIC_006.MVoutput;
+
+	EQUATIONS
+#SPECIAL CONDIDTIONS
+#	feed.Outlet.Qf = 24000*'m^3/d' - 18000*'m^3/d'*0.5*(1+tanh((time/'min'-60)/1e-6));
+
+	str2stock.Inlet.P = Patm;
+	str2UGTR.Inlet.P = 2000*'kPa' + Patm;
+	str2UWTR.Inlet.P = 700*'kPa' + Patm;
+
+	UOTR.PV_002A.Outlet.P = 670*'kPa' + Patm;
+	UOTR.PV_002B.Outlet.P = Patm;
+	UOTR.PV_003A.Outlet.P = 180*'kPa' + Patm;
+	UOTR.PV_003B.Outlet.P = Patm;
+#	feed.Outlet.BSW - 0.2 = 0.05*0.5*(1+tanh((time/'min'-60)/1e-6));	
+
+	INITIAL
+	"Triphase separator initial conditions"
+	UOTR.SG_001.OutletG.P 		= 2000*'kPa' + Patm;
+	UOTR.SG_001.OutletG.T 		= (40+273.15)*'K';
+	UOTR.SG_001.OutletL.d60 	= 141.5/(29+131.5);
+	UOTR.SG_001.OutletL.Tbn 	= (11.3*UOTR.SG_001.OutletL.d60)^3 * 'degR';
+	UOTR.SG_001.OutletG.dg 		= 0.7;
+	UOTR.SG_001.OutletG.Ycg 	= 4*'l/m^3';
+	UOTR.SG_001.OutletW.ws 		= (255*'g/l'/rho_H2Ostd)/(1+(255*'g/l'/rho_H2Ostd));
+	UOTR.SG_001.OutletL.ws 		= (255*'g/l'/rho_H2Ostd)/(1+(255*'g/l'/rho_H2Ostd));
+	UOTR.SG_001.BSWLCS 			= 0.2;
+	UOTR.SG_001.OutletL.BSW 	= 0.2;
+	UOTR.SG_001.LevelWCS 		= 0.15*'m';
+	UOTR.SG_001.LevelCS 		= 1.001*UOTR.SG_001.hweir;
+	UOTR.SG_001.LevelCL 		= 1.5*'m';
+
+	UOTR.LV_001.c 				= 0.5;
+	UOTR.LIC_001.MVoutput 		= UOTR.LV_001.c;
+
+	UOTR.LV_002.c 				= 0.1;
+	UOTR.LIC_002.MVoutput 		= UOTR.LV_002.c;
+	
+	"Production heater initial conditions"
+	UOTR.P_002.Qin 				= 12.5*'MW';
+	
+	"Pre-oil treater initial conditions"
+	UOTR.V_TO_001.OutletG.P 	= 700*'kPa' + Patm;
+	UOTR.V_TO_001.OutletG.T 	= (90+273.15)*'K';
+	UOTR.V_TO_001.OutletL.d60 	= 141.5/(29+131.5);
+	UOTR.V_TO_001.OutletL.Tbn 	= (11.3*UOTR.V_TO_001.OutletL.d60)^3 * 'degR';
+	UOTR.V_TO_001.OutletG.dg 	= 1.05;
+	UOTR.V_TO_001.OutletG.Ycg 	= 5.5*'l/m^3';
+	UOTR.V_TO_001.OutletL.BSW	= 0.2;
+	UOTR.V_TO_001.OutletL.ws 	= (255*'g/l'/rho_H2Ostd)/(1+(255*'g/l'/rho_H2Ostd));
+	UOTR.V_TO_001.Level 		= 1.0*'m';
+
+	UOTR.TO_001.OutletW.T 		= (90+273.15)*'K';
+	UOTR.TO_001.OutletL.d60 	= 141.5/(29+131.5);
+	UOTR.TO_001.OutletL.Tbn 	= (11.3*UOTR.TO_001.OutletL.d60)^3 * 'degR';	
+	UOTR.TO_001.OutletW.ws 		= (255*'g/l'/rho_H2Ostd)/(1+(255*'g/l'/rho_H2Ostd));
+	UOTR.TO_001.LevelW 			= 2.0*'m';
+
+#	UOTR.PV_002.c 				= 0.5;
+#	UOTR.PIC_002.MVoutput 		= UOTR.PV_002.c;
+	UOTR.PV_002A.c 				= 0.5;
+	UOTR.PIC_002A.MVoutput 		= UOTR.PV_002A.c;
+	UOTR.PV_002B.c 				= 0.00;
+	UOTR.PIC_002B.MVoutput 		= UOTR.PV_002B.c;
+	
+	UOTR.LV_003.c 				= 0.5;
+	UOTR.LIC_003.MVoutput 		= UOTR.LV_003.c;
+
+	UOTR.LV_004.c 				= 0.5;
+	UOTR.LIC_004.MVoutput 		= UOTR.LV_004.c;
+	
+	"Oil treater initial conditions"
+	UOTR.V_TO_002.OutletG.P 	= 200*'kPa' + Patm;
+	UOTR.V_TO_002.OutletG.T 	= (90+273.15)*'K';
+	UOTR.V_TO_002.OutletL.d60 	= 141.5/(29+131.5);
+	UOTR.V_TO_002.OutletL.Tbn 	= (11.3*UOTR.V_TO_002.OutletL.d60)^3 * 'degR';
+	UOTR.V_TO_002.OutletG.dg 	= 1.5;
+	UOTR.V_TO_002.OutletG.Ycg 	= 6.5*'l/m^3';
+	UOTR.V_TO_002.OutletL.BSW 	= 0.2;
+	UOTR.V_TO_002.OutletL.ws 	= (50*'g/l'/rho_H2Ostd)/(1+(50*'g/l'/rho_H2Ostd));
+	UOTR.V_TO_002.Level			= 1.0*'m';
+
+	UOTR.TO_002.OutletW.T 		= (90+273.15)*'K';
+	UOTR.TO_002.OutletL.d60 	= 141.5/(29+131.5);
+	UOTR.TO_002.OutletL.Tbn 	= (11.3*UOTR.TO_002.OutletL.d60)^3 * 'degR';	
+	UOTR.TO_002.OutletW.ws 		= (50*'g/l'/rho_H2Ostd)/(1+(50*'g/l'/rho_H2Ostd));
+	UOTR.TO_002.LevelW 			= 2.0*'m';
+
+#	UOTR.PV_003.c 				= 0.5;
+#	UOTR.PIC_003.MVoutput 		= UOTR.PV_003.c;
+	UOTR.PV_003A.c 				= 0.5;
+	UOTR.PIC_003A.MVoutput 		= UOTR.PV_003A.c;
+	UOTR.PV_003B.c 				= 0.00;
+	UOTR.PIC_003B.MVoutput 		= UOTR.PV_003B.c;
+	
+	UOTR.LV_005.c 				= 0.7;
+	UOTR.LIC_005.MVoutput 		= UOTR.LV_005.c;
+	
+	UOTR.LV_006.c 				= 0.5;
+	UOTR.LIC_006.MVoutput 		= UOTR.LV_006.c;
+
+	OPTIONS
+	Dynamic=true;
+	TimeStart = 0;
+	TimeStep = 0.01;
+	TimeEnd = 10;
+	TimeUnit='s';
+	NLASolver(
+		File="nlasolver",
+		RelativeAccuracy=1e-5,
+		AbsoluteAccuracy=1e-8,
+		MaxIterations=300
+	);
+	DAESolver(
+		File="dasslc",
+		RelativeAccuracy=1e-5,
+		AbsoluteAccuracy=1e-8,
+		EventAccuracy=1e-2
+	);
+#	GuessFile="UOTR_guess.rlt";
+#	InitialFile="UOTR_guess.rlt";
+#	GuessFile="UOTR_init001.rlt";
+	InitialFile="UOTR_init001.rlt";
+end

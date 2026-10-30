@@ -7,7 +7,7 @@ function [r_ix3c u_opt] = g_ix3c(ix3,ic,ns,ns_a,t0,tf_p,ts,ts_a,talf,C,nUt,wopt,
             for i=1:length(tspan)
                 u_p(i) = u_reg1(tspan(i),ts(ic,:)*talf,w0ns(ic,:),is,ns(ic));
             end
-        for i=1:ns(ic,:)
+        for i=1:ns(ic)
             if point(i)==1
                 w0ns3(ic,i)=w0ns(ic,i);
             else

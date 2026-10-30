@@ -29,7 +29,7 @@ function   s = p_sens(t_out,s0,      ks,ts,reg,ns,ne,te,n_s,n_c,ns_a,ts_frozen,p
             id=zeros(ns_a(j),1); id(is)=1;
             for k=2:kspan
                 %Incidence when ws(ns_a(j)) is active
-                uws=interpl(t_out(k-1),id,ts(j,:),1e-2);
+                uws=interpl(t_out(k-1),id,ts(j,:),1e-4);
     % 
                 %Sensitivities by convolution and previous state
                 s(k,n_s*(is-1)+1+j0:n_s*(is-1)+n_s+j0) = ...

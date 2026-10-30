@@ -1,0 +1,13 @@
+path(path,'F:/Matlab/ThreshLab/');
+path(path,'F:/Matlab/ThreshLab/General');
+path(path,'F:/Matlab/ThreshLab/WT/');
+path(path,'F:/Matlab/ThreshLab/Noise');
+path(path,'F:/Matlab/ThreshLab/Threshold');
+path(path,'F:/Matlab/ThreshLab/Threshold/GCV');
+path(path,'F:/Matlab/ThreshLab/Threshold/MSE');
+path(path,'F:/Matlab/ThreshLab/Threshold/Risk');
+path(path,'F:/Matlab/ThreshLab/MRF');
+path(path,'F:/Matlab/ThreshLab/Poisson');
+path(path,'F:/Matlab/ThreshLab/Poisson/PoissonTests');
+path(path,'F:/Matlab/ThreshLab/Tests/');
+path(path,'F:/Matlab/ThreshLab/Tests/GCVdemo');

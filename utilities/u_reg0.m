@@ -1,5 +1,5 @@
 function [u] = u_reg0(t,ts,w,ks,ns)
- lambd=0.01;
+ lambd=1e-5;
 un = [];
 % perfil de u
 % if t==125

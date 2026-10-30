@@ -16,9 +16,11 @@ input.tf = 250; % Final time for integration
 input.x0 = [ 0.72 0.05 1]; %state Initial Condition
 input.u_lb = [0]; % control vector lower boundary 
 input.u_ub = [0.001]; % control vector upper boundary 
+% input.u_ub = [1]; % control vector upper boundary 
 input.u0 = [0.0005]; % scalar initial estimative of control profile for each variable
+% input.u0 = [0.5]; % scalar initial estimative of control profile for each variable
 input.nU = 1; % Number of control variables...
-input.is0 = 2;  % Initial Iteration (Number of stages is ns^is0 )...
+input.is0 = 5 ; % Initial Iteration (Number of stages is ns^is0 )...
 input.isF = 10;  % Final Iteration 
 
 

@@ -1,0 +1,1359 @@
+using "types";
+
+Model str3ph
+	ATTRIBUTES
+	Brief 	= "Basic variables for a vapour-liquid-liquid oil/gas/water stream";
+	
+	VARIABLES
+	Qf			as positive		(Brief="Liquid std. Vol. Flow Rate",Unit='m^3/d',Default=1e4);
+	Qg			as positive		(Brief="Gas std. Vol. Flow Rate",Unit='m^3/d',Default=2e6);
+	BSW			as fraction		(Brief="Basic sediments and water",Default=0.5);
+#	Rgo			as positive		(Brief="Gas/oil ratio",Lower=-1e-4,Unit='m^3/m^3',Default=200);
+	ws			as fraction		(Brief="Water phase (brine) salt weitgh content",Default=0.2);
+	P        	as pressure    	(Brief="Pressure",DisplayUnit='kPa',Default=10);
+	T        	as temperature	(Brief="Temperature",Default=300);
+	hO			as enth_mass	(Brief="Oil specific enthalpy",Default=250);
+	hG			as enth_mass	(Brief="Gas specific enthalpy",Default=400);
+	hW			as enth_mass	(Brief="Water specific enthalpy",Default=250);
+	rhoL		as dens_mass	(Brief="Liquid phase mass density",Default=900);
+	rhoG		as dens_mass	(Brief="Gas phase mass density",Default=10);
+	Rs			as positive		(Brief="Solution gas-oil ratio",Unit='m^3/m^3',Default=10);
+	Rv			as positive		(Brief="Volitiled oil-gas ratio",Unit='l/m^3',Default=0.05);
+	Bo			as positive		(Brief="Oil phase Formation Volume Factor",Unit='m^3/m^3',Default=1.05);
+	Bg			as positive		(Brief="Gas phase Formation Volume Factor",Unit='m^3/m^3',Default=0.1);
+	Bw			as positive		(Brief="Water phase (brine) Formation Volume Factor",Unit='m^3/m^3',Default= 0.95);
+	rho_Wstd	as dens_mass	(Brief="Water phase (brine) mass density at std. cond.",Default=1005);
+	d60			as positive		(Brief="Oil Specific Gravity at 60 °F/60 °F",Lower=1e-6,Default=0.85);
+	d60G		as positive		(Brief="Volatilied oil Specific Gravity at 60 °F/60 °F",Lower=1e-6,Default=0.6);
+	Tbn			as temperature	(Brief="Oil Normal Boiling Point",Default=450);
+	TbnG		as temperature	(Brief="Volatiled oil Normal Boiling Point",Default=250);
+	dg			as positive		(Brief="Gas specific gravity",Default=0.7);
+	dgL			as positive		(Brief="Dissolved gas specific gravity",Default=0.95);
+	Ycg			as positive		(Brief="Condensate/Gas yield",Unit='l/m^3',Default=4);
+	YcgL		as positive		(Brief="Dissolved Condensate/Gas yield",Unit='l/m^3',Default=5.5);
+end
+
+Model null3ph as str3ph
+	ATTRIBUTES
+	Brief 	= "A str3ph stream for null flow of mass and energy specification at models";
+
+	EQUATIONS
+	Qf 			= 0*'m^3/d';
+	Qg 			= 0*'m^3/d';
+	BSW 		= 0.00;
+	ws			= 0.00;
+	T 			= 300 * 'K';
+	hO 			= 0.00 * 'kJ/kg';
+	hG 			= 0.00 * 'kJ/kg';
+	hW 			= 0.00 * 'kJ/kg';
+	rhoL 		= 800 * 'kg/m^3';
+	rhoG 		= 1.00 * 'kg/m^3';
+	Rs 			= 0.00 * 'm^3/m^3';
+	Rv 			= 1.00 * 'm^3/m^3';
+	Bo 			= 1.00;
+	Bg 			= 1.00;
+	Bw 			= 1.00;
+	rho_Wstd 	= 1000 * 'kg/m^3';
+	d60 		= 0.85;
+	d60G		= d60;
+	Tbn 		= 500*'K';
+	TbnG		= Tbn;
+	dg 			= 1.00;
+	dgL			= dg;
+	Ycg 		= 1*'l/m^3';
+	YcgL		= Ycg;
+end
+
+Model triphase_stream as str3ph
+	PARAMETERS
+	R			as constant     (Brief="Ideal Gas Constant",Default=8.31447,Unit='J/mol/K');
+	Tref		as temperature	(Brief="Reference temperature for std. cond.",Default=288.70556);
+	Pref		as pressure		(Brief="Reference pressure for std. cond.",DisplayUnit='kPa',Default=1);
+	rho_H2Ostd	as dens_mass	(Brief="Water Density at std. cond.",Default=999.0054);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+
+	VARIABLES
+	hGres		as enth_mass	(Brief="Gas specific residual enthalpy",Default=-60);
+	DhLG		as enth_mass	(Brief="Vaporization specific enthapy",Default=450);
+	Zg			as positive		(Brief="Gas Compressibility Factor",Default=0.7);
+	Tpc			as temperature	(Brief="Pseudo-critical temperature",Default=350);
+	Ppc			as pressure		(Brief="Pseudo-critical pressure",DisplayUnit='kPa',Default=30);
+	DVWT		as Real			(Brief="Water (brine) phase specific volume temperature effect",Default=0);
+	DVWP		as Real			(Brief="Water (brine) phase specific volume pressure effect",Default=0);
+	IDVWT		as Real			(Brief="Integral term of water phase specific volume temperature effect",Default=30);
+	IDVWTSQ		as Real			(Brief="Integral of the IDVWT square",Default=150);
+#	d60G		as positive		(Brief="Volatilied oil Specific Gravity at 60 °F/60 °F",Lower=1e-6,Default=0.6);
+#	dgL			as positive		(Brief="Dissolved gas specific gravity",Default=0.95);
+
+	EQUATIONS
+	"Oil specific enthalpy"
+	hO/'Btu/lb' = ((T/'degR')-(Tref/'degR'))*(
+			(-1.17126+(0.023722+0.024907*d60)*((Tbn/'degR')^(1/3)/d60) 
+				+ (1.14982-0.046535*((Tbn/'degR')^(1/3)/d60))/d60)
+			+ (1/2)*1e-4*(1+0.82463*((Tbn/'degR')^(1/3)/d60))*(1.12172-0.27634/d60)*(707.67^2-(Tref/'degR')^2)/(707.67-(Tref/'degR'))
+			- (1/3)*1e-8*(1+0.82463*((Tbn/'degR')^(1/3)/d60))*(2.9027-0.70958/d60)*(707.67^3-(Tref/'degR')^3)/(707.67-(Tref/'degR'))
+		);
+#	hO/'Btu/lb' = ((T/'degR')-(Tref/'degR'))*(
+#			(-1.17126+(0.023722+0.024907*d60L)*((TbnL/'degR')^(1/3)/d60L) 
+#				+ (1.14982-0.046535*((TbnL/'degR')^(1/3)/d60L))/d60L)
+#			+ (1/2)*1e-4*(1+0.82463*((TbnL/'degR')^(1/3)/d60L))*(1.12172-0.27634/d60L)*(707.67^2-(Tref/'degR')^2)/(707.67-(Tref/'degR'))
+#			- (1/3)*1e-8*(1+0.82463*((TbnL/'degR')^(1/3)/d60L))*(2.9027-0.70958/d60L)*(707.67^3-(Tref/'degR')^3)/(707.67-(Tref/'degR'))
+#		);
+
+	"Gas specific enthalpy"
+#	hG - hGres = R/(dg*29*'kg/kmol')*(
+#			'degR'*(141.5/d60-131.5)*(25.724/1.0937) +
+#			(0.7457*dg^2 - 1.3405*dg + 2.222)*(T-Tref) +
+#			'K'*1e-3*(19.894*dg - 1.902)/2*((T/'K')^2-(Tref/'K')^2) +
+#			'K'*1e-6*(-6.6562*dg + 1.5103)/3*((T/'K')^3-(Tref/'K')^3)
+#		);
+	hG - hGres - DhLG = R/(dg*29*'kg/kmol')*(
+			(0.7457*dg^2 - 1.3405*dg + 2.222)*(T-Tref) +
+			'K'*1e-3*(19.894*dg - 1.902)/2*((T/'K')^2-(Tref/'K')^2) +
+			'K'*1e-6*(-6.6562*dg + 1.5103)/3*((T/'K')^3-(Tref/'K')^3)
+		);
+
+	"Vaporization specific enthapy"
+	DhLG = R/(dg*29*'kg/kmol')*'degR'*(141.5/d60G-131.5)*(25.724/1.0937);
+
+	"Gas specific residual enthalpy"
+	hGres = R/(dg*29*'kg/kmol')*Tpc*(
+		(P/Ppc)*((0.083-1.097/(T/Tpc)^1.6) + (0.015)*(0.139-0.894/(T/Tpc)^4.2)) -
+		(Pref/Ppc)*((0.083-1.097/(Tref/Tpc)^1.6) + (0.015)*(0.139-0.894/(Tref/Tpc)^4.2))
+		);
+#	hGres = R/(dgG*29*'kg/kmol')*Tpc*(
+#		(P/Ppc)*((0.083-1.097/(T/Tpc)^1.6) + (0.015)*(0.139-0.894/(T/Tpc)^4.2)) -
+#		(Pref/Ppc)*((0.083-1.097/(Tref/Tpc)^1.6) + (0.015)*(0.139-0.894/(Tref/Tpc)^4.2))
+#		);
+
+	"Water specific enthalpy"
+	hW/'kJ/kg'*'K/degR' = 
+		(4.18 - ws*(rho_Wstd/'kg/m^3')/(1+DVWP)*(4.396e-3 - 4.8e-6*ws*(rho_Wstd/'kg/m^3')/(1+DVWP)))*((T-Tref)/'degR')
+		- ws*(rho_Wstd/'kg/m^3')/(1+DVWP)*(4.396e-3 - 2*4.8e-6*ws*(rho_Wstd/'kg/m^3')/(1+DVWP))*IDVWT
+		+ 4.8e-6*(ws*(rho_Wstd/'kg/m^3')/(1+DVWP))^2*IDVWTSQ;
+
+	"Liquid phase mass density"
+	rhoL*((1-BSW)*Bo + BSW*Bw) = (1-BSW)*d60*rho_H2Ostd + BSW*rho_Wstd;
+#	rhoL*((1-BSW)*Bo + BSW*Bw) = (1-BSW)*d60L*rho_H2Ostd + BSW*rho_Wstd;
+
+	"Gas phase mass density"
+	rhoG * Zg * R * T = P * (dg*29.0*'kg/kmol');
+#	rhoG * Zg * R * T = P * (dgG*29.0*'kg/kmol');
+
+	"Oil phase formation volume factor - VAZQUEZ & BEGGS"
+#	Bo = 1 + 4.677e-4*(Rs/'ft^3/bbl') 
+#		+ 1.751e-5*((T/'degR')-(459.67+60))*(141.5/d60-131.5)/(dg*(1+5.912e-5*(141.5/d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+#		- 1.811e-8*(Rs/'ft^3/bbl')*((T/'degR')-(459.67+60))*(141.5/d60-131.5)/(dg*(1+5.912e-5*(141.5/d60-131.5)*(40*1.8+32)*ln(14.7/114.7)));
+	Bo = 1 + 4.677e-4*(Rs/'ft^3/bbl') 
+		+ 1.751e-5*((T/'degR')-(459.67+60))*(141.5/d60-131.5)/(dgL*(1+5.912e-5*(141.5/d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+		- 1.811e-8*(Rs/'ft^3/bbl')*((T/'degR')-(459.67+60))*(141.5/d60-131.5)/(dgL*(1+5.912e-5*(141.5/d60-131.5)*(40*1.8+32)*ln(14.7/114.7)));
+
+	"Gas phase formation volume factor"
+	Bg = (Pref/P)*(T/Tref)*Zg;
+
+	"Water phase formation volume factor"
+	Bw = (1+DVWP)/(1+DVWT);
+
+	"Gas Compressibility Factor"
+	Zg = 1 + (0.3265 - 1.0700/(T/Tpc) - 0.5339/(T/Tpc)^3 + 0.01569/(T/Tpc)^4 
+		- 0.05165/(T/Tpc)^5)*(0.27*(P/Ppc)/(Zg*(T/Tpc)))
+		+ (0.5474 - 0.7361/(T/Tpc) + 0.1844/(T/Tpc)^2)*(0.27*(P/Ppc)/(Zg*(T/Tpc)))^2 
+		- 0.1056*(-0.7361/(T/Tpc) + 0.1844/(T/Tpc)^2)*(0.27*(P/Ppc)/(Zg*(T/Tpc)))^5 
+		+ 0.6134*exp(-0.7210*((0.27*(P/Ppc)/(Zg*(T/Tpc))))^2)*
+			(1 + 0.7210*(0.27*(P/Ppc)/(Zg*(T/Tpc)))^2)*((0.27*(P/Ppc)/(Zg*(T/Tpc)))^2/(T/Tpc)^3);
+
+	"Gas Pseudo-critical Temperature and Pressure"
+	Tpc/'K' = 93.3 + 180.6*dg - 6.94*dg^2;
+	Ppc/'bar' = 46.66 + 1.03*dg - 2.58*dg^2;
+
+	"Water phase (brine) mass density at std. cond."
+	rho_Wstd/'lb/ft^3' = 62.638 + 0.438603*ws + 1.60074e-3*ws^2;
+
+	"Water (brine) phase specific volume temperature effect"
+	DVWT = -1.0001e-2 + 1.33391e-4*(T/'degR'-459.67) + 5.50654e-7*(T/'degR'-459.67)^2;
+
+	"Water (brine) phase specific volume pressure effect"
+	DVWP = -(3.58922e-7 + 1.95301e-9*(T/'degR'-459.67))*(P/'psi')
+		-(2.25341e-10 + 1.72834e-13*(T/'degR'-459.67))*(P/'psi')^2;
+
+	"Integral term of water phase specific volume temperature effect"
+	IDVWT = -1.0001e-2*((T-Tref)/'degR')
+		+ 1.33391e-4/2*((T/'degR')^2-(Tref/'degR')^2)
+		+ 5.50654e-7/3*((T/'degR')^3-(Tref/'degR')^3);
+	
+	"Integral of IDVWT square"
+	IDVWTSQ = 1.0001^2e-4*((T-Tref)/'degR')
+		- 1.33391e-6*((T/'degR')^2-(Tref/'degR')^2)
+		+ 2.25966e-9*((T/'degR')^3-(Tref/'degR')^3)
+		+ 3.67261e-11*((T/'degR')^4-(Tref/'degR')^4)
+		+ 6.06440e-14*((T/'degR')^5-(Tref/'degR')^5);
+
+	"Volatiled oil specific gravity"
+	d60G/d60 = (Pref/P)^0.010*exp(100/450 - 100/(T/'K'));
+
+	"Volatiled oil normal boiling point"
+#	((TbnG/'degR')^(1/3)/d60G)/((Tbn/'degR')^(1/3)/d60) = 
+#		(Pref/P)^0.04*exp(100/450 - 100/(T/'K'));
+	((TbnG/'degR')^(1/3)/d60G) = ((Tbn/'degR')^(1/3)/d60);
+
+	"Dissolved gas specific gravity"
+	dg/dgL = (Pref/P)^0.005*exp(600/450 - 600/(T/'K'));
+
+	"Dissolved condensate/gas yield"
+	Ycg/YcgL = (Pref/P)^0.005*exp(600/450 - 600/(T/'K'));
+end
+
+Model triphase_source
+	PARAMETERS
+	R			as positive		(Brief="Ideal Gas Constant",Unit='kJ/kmol/K',Default=8.31447);
+	rho_H2Ostd	as dens_mass	(Brief="Pure water density at std. cond.",Default=999.054);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	Tref		as temperature	(Brief="Zero enthalpy temperature reference",Default=288.70556);
+	Pref		as pressure		(Brief="Zero enthalpy pressure reference",DisplayUnit='kPa',Default=1);
+	
+	VARIABLES
+out	Outlet		as triphase_stream;
+
+	Qo			as positive		(Brief="Oil std. vol. flow rate",Unit='m^3/d',Default=1e4);
+	Qw			as positive		(Brief="Water std. vol. flow rate",Unit='m^3/d',Default=1e4);
+#	Qg			as positive		(Brief="Gas std. vol. flow rate",Unit='m^3/d',Default=1e6);
+	Rgo			as positive		(Brief="Gas/oil ratio",Lower=-1e-4,Unit='m^3/m^3',Default=200);
+	API			as positive		(Brief="Oil API",Default=30);
+	MMg			as molweight	(Brief="Gas molar mass",Default=20);
+	Kw			as positive		(Brief="Oil watson K-factor",Default=11.3);
+	Cws			as positive		(Brief="Water phase (brine) salt mass concentration",Unit='g/l',Default=200);
+#	hGres		as enth_mass	(Brief="Gas specific residual enthalpy",DisplayUnit='kJ/kg',Default=-10);
+	rhoO		as dens_mass	(Brief="Oil phase mass density",Default=800);
+	rhoW		as dens_mass	(Brief="Water phase (brine) mass density @T,P",Default=1030);
+#	Zg			as positive		(Brief="Gas compressibility factor",Default=1.0);	
+#	Tpc			as temperature	(Brief="Pseudo-critical temperature",Default=350);
+#	Ppc			as pressure		(Brief="Pseudo-critical pressure",DisplayUnit='kPa',Default=30);
+#	rho_Wstd	as dens_mass	(Brief="Water phase (brine) mass density at std. cond.",Default=1005);
+#	DVWT		as Real			(Brief="Water (brine) phase specific volume temperature effect",Default=0);
+#	DVWP		as Real			(Brief="Water (brine) phase specific volume pressure effect",Default=0);
+#	IDVWT		as Real			(Brief="Integral term of water phase specific volume temperature effect",Default=30);
+#	IDVWTSQ		as Real			(Brief="Integral of the IDVWT square",Default=150);
+
+	EQUATIONS
+	"Oil vol. flow rate at std. cond."
+	Qo = Outlet.Qf*(1-Outlet.BSW);
+	
+	"Water vol. flow rate at std. cond."
+	Qw = Outlet.Qf*Outlet.BSW;
+	
+	"Gas/Oil Ratio"
+#	Qg = Outlet.Rgo * Qo;
+	Outlet.Qg = Rgo * Qo;
+
+	"Oil API grade"
+	API = 141.5/Outlet.d60 - 131.5;
+
+	"Gas molar mass"
+	MMg = Outlet.dg * 29*'kg/kmol';
+
+	"Oil watson K-factor"
+	Kw * Outlet.d60 = (Outlet.Tbn/'degR')^(1/3);
+
+	"Water phase (brine) salt mass concentration"
+	Cws*(1-Outlet.ws) = rho_H2Ostd*Outlet.ws;
+
+	"Relationship between Formation Oil Factor and Oil Denisty"
+	rhoO * Outlet.Bo = Outlet.d60 * rho_H2Ostd;
+
+	"Water phase (brine) mass density @T,P"
+	rhoW * Outlet.Bw = Outlet.rho_Wstd;
+
+#	"Solution Gas/Oil Ratio - STANDING"
+#	Outlet.P/'psi' = 18.2*(((Outlet.Rs/'ft^3/bbl')/Outlet.dgL)^0.83 * 10^(9.1e-4*((Outlet.T/'degR')-459.67) - 0.0125*(141.5/Outlet.d60-131.5)) - 1.4);
+
+	"Solution Gas/Oil Ratio - VAZQUEZ & BEGGS"
+	Outlet.Rs/'ft^3/bbl' = 0.0362*(Outlet.dgL*(1 + 5.912e-5*(141.5/Outlet.d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+		*(Outlet.P/'psi')^1.0937*exp(25.724*(141.5/Outlet.d60-131.5)/(Outlet.T/'degR'));
+
+#	"Volatiled Oil/Gas Ratio - NASSAR et al."
+#	Outlet.Rv = 0.5*(1+tanh((Outlet.T/'degR'-459.67)/1e-6))*(4.7e-7*(Outlet.P/'psi')^2 - 1.4e-3*(Outlet.P/'psi') + 2.3)*
+#		exp(-3.7e-4*Outlet.dg*14.696)*exp(-460*Outlet.d60G/(Outlet.T/'degR'-459.67))*Outlet.Ycg;
+
+#	"Volitiled Oil/Gas Ratio - EL-BANBI et al."
+#	1e3*Outlet.Rv/'bbl/ft^3' = 1.225537042*(Outlet.dg*rho_AIRstd)/'lb/ft^3' * 
+#		(1.07257e-4*(Outlet.P/'psi')^2 - 0.194226755*(Outlet.P/'psi') + 240.549909)/(Psat/'psi') *
+#		exp(8.32137351 * 1e3*Outlet.Ycg/'bbl/ft^3' * Tref/'degR'/((Outlet.d60G*rho_H2Ostd)/'lb/ft^3' * Outlet.T/'degR' * Pref/'psi'));
+
+	"Volatiled Oil/Gas Ratio - TRICA & SANTOS"
+#	Outlet.Rv/'l/m^3' = (-1482.47 + 1751.75*Outlet.dg + 1058.168*Outlet.dg^2)*
+#		(Outlet.P/'psi')^(-0.187803)*exp(-5381.301*Outlet.d60G/(Outlet.T/'degR'));
+	Outlet.Rv/'l/m^3' = (-1180.3 + 2170.793*Outlet.dg + 1153.42*Outlet.dg^2)*
+		(Outlet.P/'psi')^(-0.206009)*exp(-5085.453*Outlet.d60G/(Outlet.T/'degR'));
+	
+#	"Liquid Mixture Density"
+#	((1-Outlet.BSW)*Outlet.d60*rho_H2Ostd + Outlet.BSW*rho_Wstd)/Outlet.rhoL = 
+#		(1-Outlet.BSW)*Outlet.d60*rho_H2Ostd/rhoO + Outlet.BSW*rho_Wstd/rhoW;
+	
+#	"Oil specific enthalpy"
+#	Outlet.hO/'Btu/lb' = ((Outlet.T/'degR')-(Tref/'degR'))*(
+#			(-1.17126+(0.023722+0.024907*Outlet.d60)*((Outlet.Tbn/'degR')^(1/3)/Outlet.d60) 
+#				+ (1.14982-0.046535*((Outlet.Tbn/'degR')^(1/3)/Outlet.d60))/Outlet.d60)
+#			+ (1/2)*1e-4*(1+0.82463*((Outlet.Tbn/'degR')^(1/3)/Outlet.d60))*(1.12172-0.27634/Outlet.d60)*(707.67^2-(Tref/'degR')^2)/(707.67-(Tref/'degR'))
+#			- (1/3)*1e-8*(1+0.82463*((Outlet.Tbn/'degR')^(1/3)/Outlet.d60))*(2.9027-0.70958/Outlet.d60)*(707.67^3-(Tref/'degR')^3)/(707.67-(Tref/'degR'))
+#		);
+
+#	"Gas specific enthalpy"
+#	Outlet.hG - hGres = R/(Outlet.dg*29*'kg/kmol')*(
+#			'degR'*(141.5/Outlet.d60-131.5)*(25.724/1.0937) +
+#			(0.7457*Outlet.dg^2 - 1.3405*Outlet.dg + 2.222)*(Outlet.T-Tref) +
+#			'K'*1e-3*(19.894*Outlet.dg - 1.902)/2*((Outlet.T/'K')^2-(Tref/'K')^2) +
+#			'K'*1e-6*(-6.6562*Outlet.dg + 1.5103)/3*((Outlet.T/'K')^3-(Tref/'K')^3)
+#		);
+
+#	"Gas specific residual enthalpy"
+#	hGres = R/(Outlet.dg*29*'kg/kmol')*Tpc*(
+#		(Outlet.P/Ppc)*((0.083-1.097/(Outlet.T/Tpc)^1.6) + (0.015)*(0.139-0.894/(Outlet.T/Tpc)^4.2)) -
+#		(Pref/Ppc)*((0.083-1.097/(Tref/Tpc)^1.6) + (0.015)*(0.139-0.894/(Tref/Tpc)^4.2))
+#		);
+
+#	"Water specific enthalpy"
+#	Outlet.hW/'kJ/kg'*'K/degR' = 
+#		(4.18 - Outlet.ws*(rho_Wstd/'kg/m^3')/(1+DVWP)*(4.396e-3 - 4.8e-6*Outlet.ws*(rho_Wstd/'kg/m^3')/(1+DVWP)))*((Outlet.T-Tref)/'degR')
+#		- Outlet.ws*(rho_Wstd/'kg/m^3')/(1+DVWP)*(4.396e-3 - 2*4.8e-6*Outlet.ws*(rho_Wstd/'kg/m^3')/(1+DVWP))*IDVWT
+#		+ 4.8e-6*(Outlet.ws*(rho_Wstd/'kg/m^3')/(1+DVWP))^2*IDVWTSQ;
+
+#	"Gas Density"
+#	Outlet.P * (Outlet.dg*29*'kg/kmol') = Outlet.rhoG * Zg * R * Outlet.T;
+
+#	"Oil phase Formation Volume Factor - STANDING"
+#	Bo = 0.9759 + 1.2e-4*((Outlet.Rs/'ft^3/bbl')*sqrt(Outlet.dg/Outlet.d60) + 1.25*((Outlet.T/'degR')-459.67))^1.2;
+
+#	"Oil phase Formation Volume Factor - VAZQUEZ & BEGGS"
+#	Outlet.Bo = 1 + 4.677e-4*(Outlet.Rs/'ft^3/bbl') 
+#		+ 1.751e-5*((Outlet.T/'degR')-(459.67+60))*(141.5/Outlet.d60-131.5)/(Outlet.dg*(1+5.912e-5*(141.5/Outlet.d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+#		- 1.811e-8*(Outlet.Rs/'ft^3/bbl')*((Outlet.T/'degR')-(459.67+60))*(141.5/Outlet.d60-131.5)/(Outlet.dg*(1+5.912e-5*(141.5/Outlet.d60-131.5)*(40*1.8+32)*ln(14.7/114.7)));
+
+#	"Gas phase Formation Volume Factor"
+#	Outlet.Bg = (Pref/Outlet.P) * (Outlet.T/Tref) * Zg;
+	
+#	"Water phase formation volume factor"
+#	Outlet.Bw = (1+DVWP)/(1+DVWT);
+
+#	"Gas Compressibility Factor"
+#	Zg = 1 + (0.3265 - 1.0700/(Outlet.T/Tpc) - 0.5339/(Outlet.T/Tpc)^3 + 0.01569/(Outlet.T/Tpc)^4 
+#		- 0.05165/(Outlet.T/Tpc)^5)*(0.27*(Outlet.P/Ppc)/(Zg*(Outlet.T/Tpc)))
+#		+ (0.5474 - 0.7361/(Outlet.T/Tpc) + 0.1844/(Outlet.T/Tpc)^2)*(0.27*(Outlet.P/Ppc)/(Zg*(Outlet.T/Tpc)))^2 
+#		- 0.1056*(-0.7361/(Outlet.T/Tpc) + 0.1844/(Outlet.T/Tpc)^2)*(0.27*(Outlet.P/Ppc)/(Zg*(Outlet.T/Tpc)))^5 
+#		+ 0.6134*exp(-0.7210*((0.27*(Outlet.P/Ppc)/(Zg*(Outlet.T/Tpc))))^2)*
+#			(1 + 0.7210*(0.27*(Outlet.P/Ppc)/(Zg*(Outlet.T/Tpc)))^2)*((0.27*(Outlet.P/Ppc)/(Zg*(Outlet.T/Tpc)))^2/(Outlet.T/Tpc)^3);
+
+#	"Pseudo-critical Temperature and Pressure"
+#	Tpc/'K' = 93.3 + 180.6*Outlet.dg - 6.94*Outlet.dg^2;
+#	Ppc/'bar' = 46.66 + 1.03*Outlet.dg - 2.58*Outlet.dg^2;
+
+#	"Water phase (brine) mass density at std. cond."
+#	rho_Wstd/'lb/ft^3' = 62.638 + 0.438603*Outlet.ws + 1.60074e-3*Outlet.ws^2;
+
+#	"Water (brine) phase specific volume temperature effect"
+#	DVWT = -1.0001e-2 + 1.33391e-4*(Outlet.T/'degR'-459.67) + 5.50654e-7*(Outlet.T/'degR'-459.67)^2;
+
+#	"Water (brine) phase specific volume pressure effect"
+#	DVWP = -(3.58922e-7 + 1.95301e-9*(Outlet.T/'degR' - 459.67))*Outlet.P/'psi'
+#		-(2.25341e-10 + 1.72834e-13*(Outlet.T/'degR' - 459.67))*(Outlet.P/'psi')^2;
+
+#	"Integral term of water phase specific volume temperature effect"
+#	IDVWT = -1.0001e-2*((Outlet.T-Tref)/'degR')
+#		+ 1.33391e-4/2*((Outlet.T/'degR')^2-(Tref/'degR')^2)
+#		+ 5.50654e-7/3*((Outlet.T/'degR')^3-(Tref/'degR')^3);
+	
+#	"Integral of IDVWT square"
+#	IDVWTSQ = 1.0001^2e-4*((Outlet.T-Tref)/'degR')
+#		- 1.33391e-6*((Outlet.T/'degR')^2-(Tref/'degR')^2)
+#		+ 2.25966e-9*((Outlet.T/'degR')^3-(Tref/'degR')^3)
+#		+ 3.67261e-11*((Outlet.T/'degR')^4-(Tref/'degR')^4)
+#		+ 6.06440e-14*((Outlet.T/'degR')^5-(Tref/'degR')^5);
+end
+
+Model triphase_sink
+	PARAMETERS
+	R			as positive		(Brief="Ideal Gas Constant",Unit='kJ/kmol/K',Default=8.31447);
+	rho_H2Ostd	as dens_mass	(Brief="Water density at std. cond.",Default=999.054);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	Tref		as temperature	(Brief="Zero enthalpy temperature reference",Default=288.70556);
+	Pref		as pressure		(Brief="Zero enthalpy pressure reference",DisplayUnit='kPa',Default=1);
+	
+	VARIABLES
+in	Inlet		as triphase_stream;
+
+	Qo			as positive		(Brief="Water std. vol. flow rate",Unit='m^3/d',Default=1e4);
+	Qw			as positive		(Brief="Water std. vol. flow rate",Unit='m^3/d',Default=1e4);
+#	Qg			as positive		(Brief="Gas std. vol. flow rate",Unit='m^3/d',Default=1e6);
+	Rgo			as positive		(Brief="Gas/oil ratio",Lower=-1e-4,Unit='m^3/m^3',Default=200);
+	API			as positive		(Brief="Oil API",Default=30);
+	MMg			as molweight	(Brief="Gas molar mass",Default=20);
+	Kw			as positive		(Brief="Oil watson K-factor",Default=11.3);
+	Cws			as positive		(Brief="Water phase (brine) salt mass concentration",Unit='g/l',Default=200);
+	rhoO		as dens_mass	(Brief="Oil phase mass density",Default=800);
+	rhoW		as dens_mass	(Brief="Water phase (brine) mass density @T,P",Default=1030);
+
+	EQUATIONS
+	"Oil vol. flow rate at std. cond."
+	Qo = Inlet.Qf*(1-Inlet.BSW);
+
+	"Water vol. flow rate at std. cond."
+	Qw = Inlet.Qf*Inlet.BSW;
+
+	"Gas/Oil Ratio"
+#	Qg = Inlet.Rgo * Qo;
+	Inlet.Qg = Rgo * Qo;
+
+	"Oil API grade"
+	API = 141.5/Inlet.d60 - 131.5;
+
+	"Gas molar mass"
+	MMg = Inlet.dg * 29*'kg/kmol';
+
+	"Oil watson K-factor"
+	Kw * Inlet.d60 = (Inlet.Tbn/'degR')^(1/3);
+
+	"Water phase (brine) salt mass concentration"
+	Cws*(1-Inlet.ws) = rho_H2Ostd*Inlet.ws;
+
+	"Relationship between Formation Oil Factor and Oil Denisty"
+	rhoO * Inlet.Bo = Inlet.d60 * rho_H2Ostd;
+	
+	"Water phase (brine) mass density @T,P"
+	rhoW * Inlet.Bw = Inlet.rho_Wstd;
+end
+
+Model triphase_ref
+	VARIABLES
+in	Inlet	as str3ph;
+out	Outlet	as str3ph;
+
+	EQUATIONS
+	Outlet.BSW		= Inlet.BSW;
+	Outlet.ws		= Inlet.ws;
+	Outlet.P		= Inlet.P;
+	Outlet.T        = Inlet.T;
+	Outlet.hO		= Inlet.hO;
+	Outlet.hG		= Inlet.hG;
+	Outlet.hW		= Inlet.hW;
+	Outlet.rhoL		= Inlet.rhoL;
+	Outlet.rhoG		= Inlet.rhoG;
+	Outlet.Rs		= Inlet.Rs;
+	Outlet.Rv		= Inlet.Rv;
+	Outlet.Bo		= Inlet.Bo;
+	Outlet.Bg		= Inlet.Bg;
+	Outlet.Bw		= Inlet.Bw;
+	Outlet.rho_Wstd	= Inlet.rho_Wstd;
+	Outlet.d60		= Inlet.d60;
+	Outlet.d60G		= Inlet.d60G;
+	Outlet.Tbn		= Inlet.Tbn;
+	Outlet.TbnG		= Inlet.TbnG;
+	Outlet.dg		= Inlet.dg;
+	Outlet.dgL		= Inlet.dgL;
+	Outlet.Ycg		= Inlet.Ycg;
+	Outlet.YcgL		= Inlet.YcgL;
+end
+
+Model strL as str3ph
+	ATTRIBUTES
+	Brief 	= "Basic variables for liquid only oil/water stream";
+	
+	EQUATIONS
+	Qg 		= 0.00 * 'm^3/d';
+	hG 		= 0.00 * 'kJ/kg';
+	rhoG 	= 1.00 * 'kg/m^3'; 
+	Rv 		= 0.00 *  'l/m^3';
+	Bg 		= 1.00 * 'm^3/m^3';
+	d60G	= d60;
+	TbnG	= Tbn;
+	dgL		= dg;
+	YcgL	= Ycg;
+end
+
+#*
+Model strL
+	ATTRIBUTES
+	Brief 	= "Basic variables for liquid only oil/water stream";
+	
+	VARIABLES
+	Qf			as positive		(Brief="Liquid std. Vol. Flow Rate",Unit='m^3/d',Default=1e4);
+	BSW			as fraction		(Brief="Basic sediments and water",Default=0.5);
+	ws			as fraction		(Brief="Water phase (brine) salt weitgh content",Default=0.2);
+	P        	as pressure    	(Brief="Pressure",DisplayUnit='kPa',Default=10);
+	T        	as temperature	(Brief="Temperature",Default=300);
+	hO			as enth_mass	(Brief="Oil specific enthalpy",Default=250);
+	hW			as enth_mass	(Brief="Water specific enthalpy",Default=250);
+	rhoL		as dens_mass	(Brief="Liquid phase mass density",Default=900);
+	Rs			as positive		(Brief="Solution gas-oil ratio",Unit='m^3/m^3',Default=10);
+	Bo			as positive		(Brief="Oil phase Formation Volume Factor",Default= 1.05);
+	Bw			as positive		(Brief="Water phase (brine) Formation Volume Factor",Default= 0.95);
+	rho_Wstd	as dens_mass	(Brief="Water phase (brine) mass density at std. cond.",Default=1005);
+	d60			as positive		(Brief="Oil Specific Gravity at 60 °F/60 °F",Lower=1e-6,Default=0.85);
+	Tbn			as temperature	(Brief="Oil Normal Boiling Point",Default=450);
+	dg			as positive		(Brief="Gas specific gravity",Default=0.7);
+	Ycg			as positive		(Brief="Condensate/Gas yield",Unit='l/m^3',Default=4);
+end
+*#
+Model liquid_stream as strL
+	PARAMETERS
+	R			as constant     (Brief="Ideal Gas Constant",Default=8.31447,Unit='J/mol/K');
+	Tref		as temperature	(Brief="Referente temperature for std. cond.",Default=288.70556);
+	rho_H2Ostd	as dens_mass	(Brief="Water Density at std. cond.",Default=999.0054);
+
+	VARIABLES
+	DVWT		as Real			(Brief="Water (brine) phase specific volume temperature effect",Default=0);
+	DVWP		as Real			(Brief="Water (brine) phase specific volume pressure effect",Default=0);
+	IDVWT		as Real			(Brief="Integral term of water phase specific volume temperature effect",Default=30);
+	IDVWTSQ		as Real			(Brief="Integral of the IDVWT square",Default=150);
+
+	EQUATIONS
+	"Oil specific enthalpy"
+	hO/'Btu/lb' = ((T/'degR')-(Tref/'degR'))*(
+			(-1.17126+(0.023722+0.024907*d60)*((Tbn/'degR')^(1/3)/d60) 
+				+ (1.14982-0.046535*((Tbn/'degR')^(1/3)/d60))/d60)
+			+ (1/2)*1e-4*(1+0.82463*((Tbn/'degR')^(1/3)/d60))*(1.12172-0.27634/d60)*(707.67^2-(Tref/'degR')^2)/(707.67-(Tref/'degR'))
+			- (1/3)*1e-8*(1+0.82463*((Tbn/'degR')^(1/3)/d60))*(2.9027-0.70958/d60)*(707.67^3-(Tref/'degR')^3)/(707.67-(Tref/'degR'))
+		);
+#	hO/'Btu/lb' = ((T/'degR')-(Tref/'degR'))*(
+#			(-1.17126+(0.023722+0.024907*d60L)*((TbnL/'degR')^(1/3)/d60L) 
+#				+ (1.14982-0.046535*((TbnL/'degR')^(1/3)/d60L))/d60L)
+#			+ (1/2)*1e-4*(1+0.82463*((TbnL/'degR')^(1/3)/d60L))*(1.12172-0.27634/d60L)*(707.67^2-(Tref/'degR')^2)/(707.67-(Tref/'degR'))
+#			- (1/3)*1e-8*(1+0.82463*((TbnL/'degR')^(1/3)/d60L))*(2.9027-0.70958/d60L)*(707.67^3-(Tref/'degR')^3)/(707.67-(Tref/'degR'))
+#		);
+
+	"Water specific enthalpy"
+	hW/'kJ/kg'*'K/degR' = 
+		(4.18 - ws*(rho_Wstd/'kg/m^3')/(1+DVWP)*(4.396e-3 - 4.8e-6*ws*(rho_Wstd/'kg/m^3')/(1+DVWP)))*((T-Tref)/'degR')
+		- ws*(rho_Wstd/'kg/m^3')/(1+DVWP)*(4.396e-3 - 2*4.8e-6*ws*(rho_Wstd/'kg/m^3')/(1+DVWP))*IDVWT
+		+ 4.8e-6*(ws*(rho_Wstd/'kg/m^3')/(1+DVWP))^2*IDVWTSQ;
+
+	"Liquid phase mass density"
+	rhoL*((1-BSW)*Bo + BSW*Bw) = (1-BSW)*d60*rho_H2Ostd + BSW*rho_Wstd;
+#	rhoL*((1-BSW)*Bo + BSW*Bw) = (1-BSW)*d60L*rho_H2Ostd + BSW*rho_Wstd;
+
+	"Oil phase formation volume factor - VAZQUEZ & BEGGS"
+#	Bo = 1 + 4.677e-4*(Rs/'ft^3/bbl') 
+#		+ 1.751e-5*((T/'degR')-(459.67+60))*(141.5/d60-131.5)/(dg*(1+5.912e-5*(141.5/d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+#		- 1.811e-8*(Rs/'ft^3/bbl')*((T/'degR')-(459.67+60))*(141.5/d60-131.5)/(dg*(1+5.912e-5*(141.5/d60-131.5)*(40*1.8+32)*ln(14.7/114.7)));
+	Bo = 1 + 4.677e-4*(Rs/'ft^3/bbl') 
+		+ 1.751e-5*((T/'degR')-(459.67+60))*(141.5/d60-131.5)/(dg*(1+5.912e-5*(141.5/d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+		- 1.811e-8*(Rs/'ft^3/bbl')*((T/'degR')-(459.67+60))*(141.5/d60-131.5)/(dg*(1+5.912e-5*(141.5/d60-131.5)*(40*1.8+32)*ln(14.7/114.7)));
+
+	"Water phase formation volume factor"
+	Bw = (1+DVWP)/(1+DVWT);
+
+	"Water phase (brine) mass density at std. cond."
+	rho_Wstd/'lb/ft^3' = 62.638 + 0.438603*ws + 1.60074e-3*ws^2;
+
+	"Water (brine) phase specific volume temperature effect"
+	DVWT = -1.0001e-2 + 1.33391e-4*(T/'degR'-459.67) + 5.50654e-7*(T/'degR'-459.67)^2;
+
+	"Water (brine) phase specific volume pressure effect"
+	DVWP = -(3.58922e-7 + 1.95301e-9*(T/'degR'-459.67))*(P/'psi')
+		-(2.25341e-10 + 1.72834e-13*(T/'degR'-459.67))*(P/'psi')^2;
+
+	"Integral term of water phase specific volume temperature effect"
+	IDVWT = -1.0001e-2*((T-Tref)/'degR')
+		+ 1.33391e-4/2*((T/'degR')^2-(Tref/'degR')^2)
+		+ 5.50654e-7/3*((T/'degR')^3-(Tref/'degR')^3);
+	
+	"Integral of IDVWT square"
+	IDVWTSQ = 1.0001^2e-4*((T-Tref)/'degR')
+		- 1.33391e-6*((T/'degR')^2-(Tref/'degR')^2)
+		+ 2.25966e-9*((T/'degR')^3-(Tref/'degR')^3)
+		+ 3.67261e-11*((T/'degR')^4-(Tref/'degR')^4)
+		+ 6.06440e-14*((T/'degR')^5-(Tref/'degR')^5);
+end
+
+Model condensate_stream as liquid_stream
+	ATTRIBUTES
+	Brief 	= "Liquid only phase stream free of water";
+
+	EQUATIONS
+	"No Water"
+	BSW = 0;
+	ws = 0;
+end
+
+Model liquid_source
+	PARAMETERS
+	R			as positive		(Brief="Ideal Gas Constant",Unit='kJ/kmol/K',Default=8.31447);
+	rho_H2Ostd	as dens_mass	(Brief="Pure water density at std. cond.",Default=999.054);
+	Tref		as temperature	(Brief="Zero enthalpy temperature reference",Default=288.70556);
+	
+	VARIABLES
+out	Outlet		as liquid_stream;
+
+	Qo			as positive		(Brief="Oil std. vol. flow rate",Unit='m^3/d',Default=1e4);
+	Qw			as positive		(Brief="Water std. vol. flow rate",Unit='m^3/d',Default=1e4);
+	API			as positive		(Brief="Oil API",Default=30);
+	Kw			as positive		(Brief="Oil watson K-factor",Default=11.3);
+	Cws			as positive		(Brief="Water phase (brine) salt mass concentration",Unit='g/l',Default=200);
+	rhoO		as dens_mass	(Brief="Oil phase mass density",Default=800);
+	rhoW		as dens_mass	(Brief="Water phase (brine) mass density @T,P",Default=1030);
+#	rho_Wstd	as dens_mass	(Brief="Water phase (brine) mass density at std. cond.",Default=1005);
+#	DVWT		as Real			(Brief="Water (brine) phase specific volume temperature effect",Default=0);
+#	DVWP		as Real			(Brief="Water (brine) phase specific volume pressure effect",Default=0);
+#	IDVWT		as Real			(Brief="Integral term of water phase specific volume temperature effect",Default=30);
+#	IDVWTSQ		as Real			(Brief="Integral of the IDVWT square",Default=150);
+
+	EQUATIONS
+	"Oil vol. flow rate at std. cond."
+	Qo = Outlet.Qf*(1-Outlet.BSW);
+	
+	"Water vol. flow rate at std. cond."
+	Qw = Outlet.Qf*Outlet.BSW;
+	
+	"Oil API grade"
+	API = 141.5/Outlet.d60 - 131.5;
+
+	"Oil watson K-factor"
+	Kw * Outlet.d60 = (Outlet.Tbn/'degR')^(1/3);
+	
+	"Water phase (brine) salt mass concentration"
+	Cws*(1-Outlet.ws) = rho_H2Ostd*Outlet.ws;
+	
+#	"Liquid Mixture Density"
+#	((1-Outlet.BSW)*Outlet.d60*rho_H2Ostd + Outlet.BSW*rho_Wstd)/Outlet.rhoL = 
+#		(1-Outlet.BSW)*Outlet.d60*rho_H2Ostd/rhoO + Outlet.BSW*rho_Wstd/rhoW;
+	
+#	"Oil specific enthalpy"
+#	Outlet.hO/'Btu/lb' = ((Outlet.T/'degR')-(Tref/'degR'))*(
+#			(-1.17126+(0.023722+0.024907*Outlet.d60)*((Outlet.Tbn/'degR')^(1/3)/Outlet.d60) 
+#				+ (1.14982-0.046535*((Outlet.Tbn/'degR')^(1/3)/Outlet.d60))/Outlet.d60)
+#			+ (1/2)*1e-4*(1+0.82463*((Outlet.Tbn/'degR')^(1/3)/Outlet.d60))*(1.12172-0.27634/Outlet.d60)*(707.67^2-(Tref/'degR')^2)/(707.67-(Tref/'degR'))
+#			- (1/3)*1e-8*(1+0.82463*((Outlet.Tbn/'degR')^(1/3)/Outlet.d60))*(2.9027-0.70958/Outlet.d60)*(707.67^3-(Tref/'degR')^3)/(707.67-(Tref/'degR'))
+#		);
+
+#	"Water specific enthalpy"
+#	Outlet.hW/'kJ/kg'*'K/degR' = 
+#		(4.18 - Outlet.ws*(rho_Wstd/'kg/m^3')/(1+DVWP)*(4.396e-3 - 4.8e-6*Outlet.ws*(rho_Wstd/'kg/m^3')/(1+DVWP)))*((Outlet.T-Tref)/'degR')
+#		- Outlet.ws*(rho_Wstd/'kg/m^3')/(1+DVWP)*(4.396e-3 - 2*4.8e-6*Outlet.ws*(rho_Wstd/'kg/m^3')/(1+DVWP))*IDVWT
+#		+ 4.8e-6*(Outlet.ws*(rho_Wstd/'kg/m^3')/(1+DVWP))^2*IDVWTSQ;
+
+	"Relationship between Formation Oil Factor and Oil Denisty"
+	rhoO * Outlet.Bo = Outlet.d60 * rho_H2Ostd;
+
+	"Water phase (brine) mass density @T,P"
+	rhoW * Outlet.Bw = Outlet.rho_Wstd;
+
+#	"Solution Gas/Oil Ratio - STANDING"
+#	Outlet.P/'psi' = 18.2*(((Outlet.Rs/'ft^3/bbl')/Outlet.dg)^0.83 * 10^(9.1e-4*((Outlet.T/'degR')-459.67) - 0.0125*(141.5/Outlet.d60-131.5)) - 1.4);
+
+	"Solution Gas/Oil Ratio - VAZQUEZ & BEGGS"
+	Outlet.Rs/'ft^3/bbl' = 0.0362*(Outlet.dg*(1 + 5.912e-5*(141.5/Outlet.d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+		*(Outlet.P/'psi')^1.0937*exp(25.724*(141.5/Outlet.d60-131.5)/(Outlet.T/'degR'));
+
+#	"Oil phase Formation Volume Factor - STANDING"
+#	Bo = 0.9759 + 1.2e-4*((Outlet.Rs/'ft^3/bbl')*sqrt(Outlet.dg/Outlet.d60) + 1.25*((Outlet.T/'degR')-459.67))^1.2;
+
+#	"Oil phase Formation Volume Factor - VAZQUEZ & BEGGS"
+#	Outlet.Bo = 1 + 4.677e-4*(Outlet.Rs/'ft^3/bbl') 
+#		+ 1.751e-5*((Outlet.T/'degR')-(459.67+60))*(141.5/Outlet.d60-131.5)/(Outlet.dg*(1+5.912e-5*(141.5/Outlet.d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+#		- 1.811e-8*(Outlet.Rs/'ft^3/bbl')*((Outlet.T/'degR')-(459.67+60))*(141.5/Outlet.d60-131.5)/(Outlet.dg*(1+5.912e-5*(141.5/Outlet.d60-131.5)*(40*1.8+32)*ln(14.7/114.7)));
+
+#	"Water phase formation volume factor"
+#	Outlet.Bw = (1+DVWP)/(1+DVWT);
+
+#	"Water phase (brine) mass density at std. cond."
+#	rho_Wstd/'lb/ft^3' = 62.638 + 0.438603*Outlet.ws + 1.60074e-3*Outlet.ws^2;
+
+#	"Water (brine) phase specific volume temperature effect"
+#	DVWT = -1.0001e-2 + 1.33391e-4*(Outlet.T/'degR'-459.67) + 5.50654e-7*(Outlet.T/'degR'-459.67)^2;
+
+#	"Water (brine) phase specific volume pressure effect"
+#	DVWP = -(3.58922e-7 + 1.95301e-9*(Outlet.T/'degR' - 459.67))*Outlet.P/'psi'
+#		-(2.25341e-10 + 1.72834e-13*(Outlet.T/'degR' - 459.67))*(Outlet.P/'psi')^2;
+
+#	"Integral term of water phase specific volume temperature effect"
+#	IDVWT = -1.0001e-2*((Outlet.T-Tref)/'degR')
+#		+ 1.33391e-4/2*((Outlet.T/'degR')^2-(Tref/'degR')^2)
+#		+ 5.50654e-7/3*((Outlet.T/'degR')^3-(Tref/'degR')^3);
+	
+#	"Integral of IDVWT square"
+#	IDVWTSQ = 1.0001^2e-4*((Outlet.T-Tref)/'degR')
+#		- 1.33391e-6*((Outlet.T/'degR')^2-(Tref/'degR')^2)
+#		+ 2.25966e-9*((Outlet.T/'degR')^3-(Tref/'degR')^3)
+#		+ 3.67261e-11*((Outlet.T/'degR')^4-(Tref/'degR')^4)
+#		+ 6.06440e-14*((Outlet.T/'degR')^5-(Tref/'degR')^5);
+end
+
+Model condensate_source as liquid_source
+	EQUATIONS
+	"No Water"
+	Outlet.BSW = 0;
+	Outlet.ws = 0;
+end
+
+Model liquid_sink
+	PARAMETERS
+	R			as positive		(Brief="Ideal Gas Constant",Unit='kJ/kmol/K',Default=8.31447);
+	rho_H2Ostd	as dens_mass	(Brief="Pure water density at std. cond.",Default=999.054);
+	Tref		as temperature	(Brief="Zero enthalpy temperature reference",Default=288.70556);
+	
+	VARIABLES
+in	Inlet		as liquid_stream;
+
+	Qo			as positive		(Brief="Oil std. vol. flow rate",Unit='m^3/d',Default=1e4);
+	Qw			as positive		(Brief="Water std. vol. flow rate",Unit='m^3/d',Default=1e4);
+	API			as positive		(Brief="Oil API",Default=30);
+	Kw			as positive		(Brief="Oil watson K-factor",Default=11.3);
+	Cws			as positive		(Brief="Water phase (brine) salt mass concentration",Unit='g/l',Default=200);
+	rhoO		as dens_mass	(Brief="Oil phase mass density",Default=800);
+	rhoW		as dens_mass	(Brief="Water phase (brine) mass density @T,P",Default=1030);
+#	rho_Wstd	as dens_mass	(Brief="Water phase (brine) mass density at std. cond.",Default=1005);
+#	DVWT		as Real			(Brief="Water (brine) phase specific volume temperature effect",Default=0);
+#	DVWP		as Real			(Brief="Water (brine) phase specific volume pressure effect",Default=0);
+#	IDVWT		as Real			(Brief="Integral term of water phase specific volume temperature effect",Default=30);
+#	IDVWTSQ		as Real			(Brief="Integral of the IDVWT square",Default=150);
+
+	EQUATIONS
+	"Oil vol. flow rate at std. cond."
+	Qo = Inlet.Qf*(1-Inlet.BSW);
+	
+	"Water vol. flow rate at std. cond."
+	Qw = Inlet.Qf*Inlet.BSW;
+	
+	"Oil API grade"
+	API = 141.5/Inlet.d60 - 131.5;
+
+	"Oil watson K-factor"
+	Kw * Inlet.d60 = (Inlet.Tbn/'degR')^(1/3);
+	
+	"Water phase (brine) salt mass concentration"
+	Cws*(1-Inlet.ws) = rho_H2Ostd*Inlet.ws;
+	
+	"Relationship between Formation Oil Factor and Oil Denisty"
+	rhoO * Inlet.Bo = Inlet.d60 * rho_H2Ostd;
+
+	"Water phase (brine) mass density @T,P"
+	rhoW * Inlet.Bw = Inlet.rho_Wstd;
+end
+
+Model condensate_sink as liquid_sink
+
+end
+
+Model strG
+	ATTRIBUTES
+	Brief = "Basic variables for a vapour-liquid gas/condensate 
+			water-free content stream";
+	Info = 	"The condensate was considered as volitiled oil phase,
+			with the same oil properties";
+		
+	VARIABLES
+	Qg			as positive		(Brief="Gas std. Vol. Flow Rate",Unit='m^3/d',Default=1e6);
+	Qc			as positive		(Brief="Condensate std. vol. flow rate",Unit='m^3/d',Default=1e4);
+	P        	as pressure    	(Brief="Pressure",DisplayUnit='kPa',Default=10);
+	T        	as temperature	(Brief="Temperature",Default=300);
+	hO			as enth_mass	(Brief="Oil specific enthalpy",Default=250);
+	hG			as enth_mass	(Brief="Gas specific enthalpy",Default=400);
+	rhoL		as dens_mass	(Brief="Liquid phase mass density",Default=900);
+	rhoG		as dens_mass	(Brief="Gas phase mass density",Default=10);
+	Rs			as positive		(Brief="Solution gas-oil ratio",Unit='m^3/m^3',Default=10);
+	Rv			as positive		(Brief="Volitiled oil-gas ratio",Unit='l/m^3',Default=0.01);
+	Bo			as positive		(Brief="Oil phase Formation Volume Factor",Unit='m^3/m^3',Default=1.05);
+	Bg			as positive		(Brief="Gas phase Formation Volume Factor",Unit='m^3/m^3',Default=0.1);
+	d60			as positive		(Brief="Oil Specific Gravity at 60 °F/60 °F",Lower=1e-6,Default=0.6);
+	d60L		as positive		(Brief="Condensed oil Specific Gravity at 60 °F/60 °F",Lower=1e-6,Default=0.85);
+	Tbn			as temperature	(Brief="Oil Normal Boiling Point",Default=250);
+	TbnL		as temperature	(Brief="Condensed oil normal boiling point",Default=450);
+	dg			as positive		(Brief="Gas specific gravity",Default=0.7);
+	dgL			as positive		(Brief="Dissolved gas specific gravity",Default=0.95);
+	Ycg			as positive		(Brief="Condensate/Gas yield",Unit='l/m^3',Default=4);
+	YcgL		as positive		(Brief="Condensate/Gas yield",Unit='l/m^3',Default=5.5);
+end
+
+Model nullG as strG
+	ATTRIBUTES
+	Brief 	= "A strG stream for null flow of mass and energy specification at models";
+
+	EQUATIONS
+	Qg 			= 0*'m^3/d';
+	Qc 			= 0*'m^3/d';
+	T 			= 300 * 'K';
+	hO 			= 0.00 * 'kJ/kg';
+	hG 			= 0.00 * 'kJ/kg';
+	rhoL 		= 800 * 'kg/m^3';
+	rhoG 		= 1.00 * 'kg/m^3';
+	Rs 			= 0.00 * 'm^3/m^3';
+	Rv 			= 0.00 * 'l/m^3';
+	Bo 			= 1.00;
+	Bg 			= 1.00;
+	d60 		= 0.85;
+	d60L		= d60;
+	Tbn 		= 500*'K';
+	TbnL		= Tbn;
+	dg 			= 1.00;
+	dgL			= dg;
+	Ycg 		= 1*'l/m^3';
+	YcgL		= Ycg;
+end
+
+Model gas_stream as strG
+	PARAMETERS
+	R			as constant     (Brief="Ideal Gas Constant",Default=8.31447,Unit='J/mol/K');
+	Tref		as temperature	(Brief="Referente temperature for std. cond.",Default=288.70556);
+	Pref		as pressure		(Brief="Reference pressure for std. cond.",DisplayUnit='kPa',Default=1);
+	rho_H2Ostd	as dens_mass	(Brief="Water Density at std. cond.",Default=999.0054);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+
+	VARIABLES
+	hGres		as enth_mass	(Brief="Gas specific residual enthalpy",Default=-60);
+	DhLG		as enth_mass	(Brief="Vaporization specific enthapy",Default=450);
+	Zg			as positive		(Brief="Gas Compressibility Factor",Default=0.7);
+	Tpc			as temperature	(Brief="Pseudo-critical temperature",Default=350);
+	Ppc			as pressure		(Brief="Pseudo-critical pressure",DisplayUnit='kPa',Default=30);
+#	d60L		as positive		(Brief="Condensed oil Specific Gravity at 60 °F/60 °F",Lower=1e-6,Default=0.85);
+#	TbnL		as temperature	(Brief="Condensed oil normal boiling point",Default=450);
+#	dgL			as positive		(Brief="Dissolved gas specific gravity",Default=0.95);
+	
+	EQUATIONS
+	"Oil specific enthalpy"
+#	hO/'Btu/lb' = ((T/'degR')-(Tref/'degR'))*(
+#			(-1.17126+(0.023722+0.024907*d60)*((Tbn/'degR')^(1/3)/d60) 
+#				+ (1.14982-0.046535*((Tbn/'degR')^(1/3)/d60))/d60)
+#			+ (1/2)*1e-4*(1+0.82463*((Tbn/'degR')^(1/3)/d60))*(1.12172-0.27634/d60)*(707.67^2-(Tref/'degR')^2)/(707.67-(Tref/'degR'))
+#			- (1/3)*1e-8*(1+0.82463*((Tbn/'degR')^(1/3)/d60))*(2.9027-0.70958/d60)*(707.67^3-(Tref/'degR')^3)/(707.67-(Tref/'degR'))
+#		);
+	hO/'Btu/lb' = ((T/'degR')-(Tref/'degR'))*(
+			(-1.17126+(0.023722+0.024907*d60L)*((TbnL/'degR')^(1/3)/d60L) 
+				+ (1.14982-0.046535*((TbnL/'degR')^(1/3)/d60L))/d60L)
+			+ (1/2)*1e-4*(1+0.82463*((TbnL/'degR')^(1/3)/d60L))*(1.12172-0.27634/d60L)*(707.67^2-(Tref/'degR')^2)/(707.67-(Tref/'degR'))
+			- (1/3)*1e-8*(1+0.82463*((TbnL/'degR')^(1/3)/d60L))*(2.9027-0.70958/d60L)*(707.67^3-(Tref/'degR')^3)/(707.67-(Tref/'degR'))
+		);
+
+	"Gas specific enthalpy"
+#	hG - hGres = R/(dg*29*'kg/kmol')*(
+#			'degR'*(141.5/d60-131.5)*(25.724/1.0937) +
+#			(0.7457*dg^2 - 1.3405*dg + 2.222)*(T-Tref) +
+#			'K'*1e-3*(19.894*dg - 1.902)/2*((T/'K')^2-(Tref/'K')^2) +
+#			'K'*1e-6*(-6.6562*dg + 1.5103)/3*((T/'K')^3-(Tref/'K')^3)
+#		);
+	hG - hGres - DhLG = R/(dg*29*'kg/kmol')*(
+			(0.7457*dg^2 - 1.3405*dg + 2.222)*(T-Tref) +
+			'K'*1e-3*(19.894*dg - 1.902)/2*((T/'K')^2-(Tref/'K')^2) +
+			'K'*1e-6*(-6.6562*dg + 1.5103)/3*((T/'K')^3-(Tref/'K')^3)
+		);
+
+	"Vaporization specific enthapy"
+	DhLG = R/(dg*29*'kg/kmol')*'degR'*(141.5/d60-131.5)*(25.724/1.0937);
+#	DhLG = R/(dg*29*'kg/kmol')*'degR'*(141.5/d60G-131.5)*(25.724/1.0937);
+
+
+	"Gas specific residual enthalpy"
+	hGres = R/(dg*29*'kg/kmol')*Tpc*(
+		(P/Ppc)*((0.083-1.097/(T/Tpc)^1.6) + (0.015)*(0.139-0.894/(T/Tpc)^4.2)) -
+		(Pref/Ppc)*((0.083-1.097/(Tref/Tpc)^1.6) + (0.015)*(0.139-0.894/(Tref/Tpc)^4.2))
+		);
+
+	"Liquid phase mass density"
+#	rhoL * Bo = d60 * rho_H2Ostd;
+	rhoL * Bo = d60L * rho_H2Ostd;
+
+	"Gas phase mass density"
+	rhoG * Zg * R * T = P * (dg*29.0*'kg/kmol');
+
+	"Oil phase formation volume factor - VAZQUEZ & BEGGS"
+#	Bo = 1 + 4.677e-4*(Rs/'ft^3/bbl') 
+#		+ 1.751e-5*((T/'degR')-(459.67+60))*(141.5/d60-131.5)/(dg*(1+5.912e-5*(141.5/d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+#		- 1.811e-8*(Rs/'ft^3/bbl')*((T/'degR')-(459.67+60))*(141.5/d60-131.5)/(dg*(1+5.912e-5*(141.5/d60-131.5)*(40*1.8+32)*ln(14.7/114.7)));
+	Bo = 1 + 4.677e-4*(Rs/'ft^3/bbl') 
+		+ 1.751e-5*((T/'degR')-(459.67+60))*(141.5/d60L-131.5)/(dgL*(1+5.912e-5*(141.5/d60L-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+		- 1.811e-8*(Rs/'ft^3/bbl')*((T/'degR')-(459.67+60))*(141.5/d60L-131.5)/(dgL*(1+5.912e-5*(141.5/d60L-131.5)*(40*1.8+32)*ln(14.7/114.7)));
+
+	"Gas phase formation volume factor"
+	Bg = (Pref/P)*(T/Tref)*Zg;
+
+	"Gas Compressibility Factor"
+	Zg = 1 + (0.3265 - 1.0700/(T/Tpc) - 0.5339/(T/Tpc)^3 + 0.01569/(T/Tpc)^4 
+		- 0.05165/(T/Tpc)^5)*(0.27*(P/Ppc)/(Zg*(T/Tpc)))
+		+ (0.5474 - 0.7361/(T/Tpc) + 0.1844/(T/Tpc)^2)*(0.27*(P/Ppc)/(Zg*(T/Tpc)))^2 
+		- 0.1056*(-0.7361/(T/Tpc) + 0.1844/(T/Tpc)^2)*(0.27*(P/Ppc)/(Zg*(T/Tpc)))^5 
+		+ 0.6134*exp(-0.7210*((0.27*(P/Ppc)/(Zg*(T/Tpc))))^2)*
+			(1 + 0.7210*(0.27*(P/Ppc)/(Zg*(T/Tpc)))^2)*((0.27*(P/Ppc)/(Zg*(T/Tpc)))^2/(T/Tpc)^3);
+
+	"Gas Pseudo-critical Temperature and Pressure"
+	Tpc/'K' = 93.3 + 180.6*dg - 6.94*dg^2;
+	Ppc/'bar' = 46.66 + 1.03*dg - 2.58*dg^2;
+
+	"Condensed oil specific gravity"
+	d60/d60L = (Pref/P)^0.010*exp(100/450 - 100/(T/'K'));
+
+	"Condensed oil normal boiling point"
+#	((Tbn/'degR')^(1/3)/d60)/((TbnL/'degR')^(1/3)/d60L) = 
+#		(Pref/P)^0.04*exp(100/450 - 100/(T/'K'));
+	((Tbn/'degR')^(1/3)/d60) = ((TbnL/'degR')^(1/3)/d60L);
+
+	"Dissolved gas specific gravity"
+	dg/dgL = (Pref/P)^0.005*exp(600/450 - 600/(T/'K'));
+
+	"Dissolved condensate/gas yield"
+	Ycg/YcgL = (Pref/P)^0.005*exp(600/450 - 600/(T/'K'));
+
+#	"Solution Gas/Oil Ratio - VAZQUEZ & BEGGS"
+#	Rs/'ft^3/bbl' = 0.0362*(dg*(1 + 5.912e-5*(141.5/d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+#		*(P/'psi')^1.0937*exp(25.724*(141.5/d60-131.5)/(T/'degR'));
+#	Rs/'ft^3/bbl' = 0.0362*(dgL*(1 + 5.912e-5*(141.5/d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+#		*(P/'psi')^1.0937*exp(25.724*(141.5/d60-131.5)/(T/'degR'));
+
+#	"Volatiled Oil/Gas Ratio - NASSAR et al."
+#	Rv = 0.5*(1+tanh((T/'degR'-459.67)/1e-6))*(4.7e-7*(P/'psi')^2 - 1.4e-3*(P/'psi') + 2.3)*
+#		exp(-3.7e-4*dg*14.696)*exp(-460*d60/(T/'degR'-459.67))*Ycg;
+
+#	"Volatiled Oil/Gas Ratio - TRICA & SANTOS"
+#	Rv/'l/m^3' = (-1482.47 + 1751.75*dg + 1058.168*dg^2)*
+#		(P/'psi')^(-0.187803)*exp(-5381.301*d60/(T/'degR'));
+#	Rv/'l/m^3' = (-1482.47 + 1751.75*dg + 1058.168*dg^2)*
+#		(P/'psi')^(-0.187803)*exp(-5381.301*d60G/(T/'degR'));
+end
+
+Model gas_source
+	PARAMETERS
+	R			as positive		(Brief="Ideal Gas Constant",Unit='kJ/kmol/K',Default=8.31447);
+	rho_H2Ostd	as dens_mass	(Brief="Pure water density at std. cond.",Default=999.054);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	Tref		as temperature	(Brief="Zero enthalpy temperature reference",Default=288.70556);
+	Pref		as pressure		(Brief="Zero enthalpy pressure reference",DisplayUnit='kPa',Default=1);
+	
+	VARIABLES
+out	Outlet		as gas_stream;
+	
+	Qg_act		as positive		(Brief="Gas vol. flow rate at actual conditions",Unit='m^3/h',Default=1e4);
+#	Qc			as positive		(Brief="Condensate std. vol. flow rate",Unit='m^3/d',Default=1e4);
+	Rcg			as positive		(Brief="Condensate/Gas ratio",Unit='l/m^3',Default=0.005);
+	API			as positive		(Brief="Oil API",Default=30);
+	MMg			as molweight	(Brief="Gas molar mass",Default=20);
+	Kw			as positive		(Brief="Oil watson K-factor",Default=11.3);
+	
+	EQUATIONS
+	"Volumetric Flow Rate @T,P"
+	Qg_act = Outlet.Bg*Outlet.Qg;
+
+	"Oil vol. flow rate at std. cond."
+#	Qc = Outlet.Rcg * Outlet.Qg;
+	Outlet.Qc = Rcg * Outlet.Qg;
+
+	"Oil API grade"
+#	API = 141.5/Outlet.d60 - 131.5;
+	API = 141.5/Outlet.d60L - 131.5;
+
+	"Gas molar mass"
+	MMg = Outlet.dg * 29*'kg/kmol';
+
+	"Oil watson K-factor"
+#	Kw * Outlet.d60 = (Outlet.Tbn/'degR')^(1/3);
+	Kw * Outlet.d60L = (Outlet.TbnL/'degR')^(1/3);
+	
+#	"Solution Gas/Oil Ratio - STANDING"
+#	Outlet.P/'psi' = 18.2*(((Outlet.Rs/'ft^3/bbl')/Outlet.dgL)^0.83 * 10^(9.1e-4*((Outlet.T/'degR')-459.67) - 0.0125*(141.5/Outlet.d60-131.5)) - 1.4);
+
+	"Solution Gas/Oil Ratio - VAZQUEZ & BEGGS"
+#	Outlet.Rs/'ft^3/bbl' = 0.0362*(Outlet.dg*(1 + 5.912e-5*(141.5/Outlet.d60-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+#		*(Outlet.P/'psi')^1.0937*exp(25.724*(141.5/Outlet.d60-131.5)/(Outlet.T/'degR'));
+	Outlet.Rs/'ft^3/bbl' = 0.0362*(Outlet.dgL*(1 + 5.912e-5*(141.5/Outlet.d60L-131.5)*(40*1.8+32)*ln(14.7/114.7)))
+		*(Outlet.P/'psi')^1.0937*exp(25.724*(141.5/Outlet.d60L-131.5)/(Outlet.T/'degR'));
+
+#	"Volatiled Oil/Gas Ratio - NASSAR et al."
+#	Outlet.Rv = 0.5*(1+tanh((Outlet.T/'degR'-459.67)/1e-6))*(4.7e-7*(Outlet.P/'psi')^2 - 1.4e-3*(Outlet.P/'psi') + 2.3)*
+#		exp(-3.7e-4*Outlet.dg*14.696)*exp(-460*Outlet.d60G/(Outlet.T/'degR'-459.67))*Outlet.Ycg;
+
+#	"Volitiled Oil/Gas Ratio - EL-BANBI et al."
+#	1e3*Outlet.Rv/'bbl/ft^3' = 1.225537042*(Outlet.dg*rho_AIRstd)/'lb/ft^3' * 
+#		(1.07257e-4*(Outlet.P/'psi')^2 - 0.194226755*(Outlet.P/'psi') + 240.549909)/(Psat/'psi') *
+#		exp(8.32137351 * 1e3*Outlet.Ycg/'bbl/ft^3' * Tref/'degR'/((Outlet.d60G*rho_H2Ostd)/'lb/ft^3' * Outlet.T/'degR' * Pref/'psi'));
+
+	"Volatiled Oil/Gas Ratio - TRICA & SANTOS"
+#	Outlet.Rv/'l/m^3' = (-1482.47 + 1751.75*Outlet.dg + 1058.168*Outlet.dg^2)*
+#		(Outlet.P/'psi')^(-0.187803)*exp(-5381.301*Outlet.d60/(Outlet.T/'degR'));
+	Outlet.Rv/'l/m^3' = (-1180.3 + 2170.793*Outlet.dg + 1153.42*Outlet.dg^2)*
+		(Outlet.P/'psi')^(-0.206009)*exp(-5085.453*Outlet.d60/(Outlet.T/'degR'));
+end
+
+Model gas_sink
+	PARAMETERS
+	R			as positive		(Brief="Ideal Gas Constant",Unit='kJ/kmol/K',Default=8.31447);
+	rho_H2Ostd	as dens_mass	(Brief="Pure water density at std. cond.",Default=999.054);
+	Tref		as temperature	(Brief="Zero enthalpy temperature reference",Default=288.70556);
+	Pref		as pressure		(Brief="Zero enthalpy pressure reference",DisplayUnit='kPa',Default=1);
+	
+	VARIABLES
+in	Inlet		as gas_stream;
+	
+	Qg_act		as positive		(Brief="Gas vol. flow rate at actual conditions",Unit='m^3/h',Default=1e4);
+#	Qc			as positive		(Brief="Condensate std. vol. flow rate",Unit='m^3/d',Default=1e4);
+	Rcg			as positive		(Brief="Condensate/Gas ratio",Unit='l/m^3',Default=0.005);
+	API			as positive		(Brief="Oil API",Default=30);
+	MMg			as molweight	(Brief="Gas molar mass",Default=20);
+	Kw			as positive		(Brief="Oil watson K-factor",Default=11.3);
+	
+	EQUATIONS
+	"Volumetric Flow Rate @T,P"
+	Qg_act = Inlet.Bg * Inlet.Qg;
+
+	"Oil vol. flow rate at std. cond."
+#	Qc = Inlet.Rcg * Inlet.Qg;
+	Inlet.Qc = Rcg * Inlet.Qg;
+
+	"Oil API grade"
+#	API = 141.5/Inlet.d60 - 131.5;
+	API = 141.5/Inlet.d60L - 131.5;
+
+	"Gas molar mass"
+	MMg = Inlet.dg * 29*'kg/kmol';
+
+	"Oil watson K-factor"
+#	Kw * Inlet.d60 = (Inlet.Tbn/'degR')^(1/3);
+	Kw * Inlet.d60L = (Inlet.TbnL/'degR')^(1/3);
+end
+
+Model gas_ref
+	VARIABLES
+in	Inlet	as strG;
+out	Outlet	as strG;
+
+	EQUATIONS
+	Outlet.P		= Inlet.P;
+	Outlet.T        = Inlet.T;
+	Outlet.hO		= Inlet.hO;
+	Outlet.hG		= Inlet.hG;
+	Outlet.rhoL		= Inlet.rhoL;
+	Outlet.rhoG		= Inlet.rhoG;
+	Outlet.Rs		= Inlet.Rs;
+	Outlet.Rv		= Inlet.Rv;
+	Outlet.Bo		= Inlet.Bo;
+	Outlet.Bg		= Inlet.Bg;
+	Outlet.d60		= Inlet.d60;
+	Outlet.d60L		= Inlet.d60L;
+	Outlet.Tbn		= Inlet.Tbn;
+	Outlet.TbnL		= Inlet.TbnL;
+	Outlet.dg		= Inlet.dg;
+	Outlet.dgL		= Inlet.dgL;
+	Outlet.Ycg		= Inlet.Ycg;
+	Outlet.YcgL		= Inlet.YcgL;
+end
+
+Model strGdry as strG
+	ATTRIBUTES
+	Brief = "Basic variables for a vapour only gas stream";
+	Info = 	"Dry gas means a gas stream free of liquid condensate";
+
+	EQUATIONS
+	Qc 		= 0.00 * 'm^3/d';
+	hO 		= 0.00 * 'kJ/kg';
+	rhoL 	= 1000 * 'kg/m^3';
+	Rs 		= 0.00 * 'm^3/m^3';
+	Bo		= 1.00 * 'm^3/m^3';
+	d60L	= d60;
+	TbnL	= Tbn;
+	dgL		= dg;
+	YcgL	= Ycg;
+end
+
+Model nullGdry as strGdry
+	ATTRIBUTES
+	Brief 	= "A strG stream for null flow of mass and energy specification at models";
+
+	EQUATIONS
+	Qg 			= 0*'m^3/d';
+	T 			= 300 * 'K';
+	hG 			= 0.00 * 'kJ/kg';
+	rhoG 		= 1.00 * 'kg/m^3';
+	Rv 			= 0.00 * 'l/m^3';
+	Bg 			= 1.00;
+	d60 		= 0.85;
+	Tbn 		= 500*'K';
+	dg 			= 1.00;
+	Ycg 		= 1*'l/m^3';
+end
+#*
+Model strGdry
+	ATTRIBUTES
+	Brief = "Basic variables for a vapour only gas stream";
+	Info = 	"Dry gas means a gas stream free of liquid condensate";
+		
+	VARIABLES
+	Qg			as positive		(Brief="Gas std. Vol. Flow Rate",Unit='m^3/d',Default=1e6);
+	P        	as pressure    	(Brief="Pressure",DisplayUnit='kPa',Default=10);
+	T        	as temperature	(Brief="Temperature",Default=300);
+	hG			as enth_mass	(Brief="Gas specific enthalpy",Default=400);
+	rhoG		as dens_mass	(Brief="Gas phase mass density",Default=10);
+	Rv			as positive		(Brief="Volitiled oil-gas ratio",Unit='l/m^3',Default=0.001);
+	Bg			as positive		(Brief="Gas phase Formation Volume Factor",Default=0.1);
+	d60			as positive		(Brief="Oil Specific Gravity at 60 °F/60 °F",Lower=1e-6,Default=0.85);
+	Tbn			as temperature	(Brief="Oil Normal Boiling Point",Default=450);
+	dg			as positive		(Brief="Gas specific gravity",Default=0.7);
+	Ycg			as positive		(Brief="Condensate/Gas yield",Unit='l/m^3',Default=4);
+end
+*#
+
+Model drygas_stream as strGdry
+	PARAMETERS
+	R			as constant     (Brief="Ideal Gas Constant",Default=8.31447,Unit='J/mol/K');
+	Tref		as temperature	(Brief="Referente temperature for std. cond.",Default=288.70556);
+	Pref		as pressure		(Brief="Reference pressure for std. cond.",DisplayUnit='kPa',Default=1);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+
+	VARIABLES
+	hGres		as enth_mass	(Brief="Gas specific residual enthalpy",Default=-60);
+	DhLG		as enth_mass	(Brief="Vaporization specific enthapy",Default=450);
+	Zg			as positive		(Brief="Gas Compressibility Factor",Default=0.7);
+	Tpc			as temperature	(Brief="Pseudo-critical temperature",Default=350);
+	Ppc			as pressure		(Brief="Pseudo-critical pressure",DisplayUnit='kPa',Default=30);
+		
+	EQUATIONS
+	"Gas specific enthalpy"
+#	hG - hGres = R/(dg*29*'kg/kmol')*(
+#			'degR'*(141.5/d60-131.5)*(25.724/1.0937) +
+#			(0.7457*dg^2 - 1.3405*dg + 2.222)*(T-Tref) +
+#			'K'*1e-3*(19.894*dg - 1.902)/2*((T/'K')^2-(Tref/'K')^2) +
+#			'K'*1e-6*(-6.6562*dg + 1.5103)/3*((T/'K')^3-(Tref/'K')^3)
+#		);
+	hG - hGres - DhLG = R/(dg*29*'kg/kmol')*(
+			(0.7457*dg^2 - 1.3405*dg + 2.222)*(T-Tref) +
+			'K'*1e-3*(19.894*dg - 1.902)/2*((T/'K')^2-(Tref/'K')^2) +
+			'K'*1e-6*(-6.6562*dg + 1.5103)/3*((T/'K')^3-(Tref/'K')^3)
+		);
+
+	"Vaporization specific enthapy"
+	DhLG = R/(dg*29*'kg/kmol')*'degR'*(141.5/d60-131.5)*(25.724/1.0937);
+
+	"Gas specific residual enthalpy"
+	hGres = R/(dg*29*'kg/kmol')*Tpc*(
+		(P/Ppc)*((0.083-1.097/(T/Tpc)^1.6) + (0.015)*(0.139-0.894/(T/Tpc)^4.2)) -
+		(Pref/Ppc)*((0.083-1.097/(Tref/Tpc)^1.6) + (0.015)*(0.139-0.894/(Tref/Tpc)^4.2))
+		);
+#	hGres = R/(dgG*29*'kg/kmol')*Tpc*(
+#		(P/Ppc)*((0.083-1.097/(T/Tpc)^1.6) + (0.015)*(0.139-0.894/(T/Tpc)^4.2)) -
+#		(Pref/Ppc)*((0.083-1.097/(Tref/Tpc)^1.6) + (0.015)*(0.139-0.894/(Tref/Tpc)^4.2))
+#		);
+
+	"Gas phase mass density"
+	rhoG * Zg * R * T = P * (dg*29.0*'kg/kmol');
+#	rhoG * Zg * R * T = P * (dgG*29.0*'kg/kmol');
+
+	"Gas phase formation volume factor"
+	Bg = (Pref/P)*(T/Tref)*Zg;
+
+	"Gas Compressibility Factor"
+	Zg = 1 + (0.3265 - 1.0700/(T/Tpc) - 0.5339/(T/Tpc)^3 + 0.01569/(T/Tpc)^4 
+		- 0.05165/(T/Tpc)^5)*(0.27*(P/Ppc)/(Zg*(T/Tpc)))
+		+ (0.5474 - 0.7361/(T/Tpc) + 0.1844/(T/Tpc)^2)*(0.27*(P/Ppc)/(Zg*(T/Tpc)))^2 
+		- 0.1056*(-0.7361/(T/Tpc) + 0.1844/(T/Tpc)^2)*(0.27*(P/Ppc)/(Zg*(T/Tpc)))^5 
+		+ 0.6134*exp(-0.7210*((0.27*(P/Ppc)/(Zg*(T/Tpc))))^2)*
+			(1 + 0.7210*(0.27*(P/Ppc)/(Zg*(T/Tpc)))^2)*((0.27*(P/Ppc)/(Zg*(T/Tpc)))^2/(T/Tpc)^3);
+
+	"Gas Pseudo-critical Temperature and Pressure"
+	Tpc/'K' = 93.3 + 180.6*dg - 6.94*dg^2;
+	Ppc/'bar' = 46.66 + 1.03*dg - 2.58*dg^2;
+end
+
+Model drygas_source
+	PARAMETERS
+	R			as positive		(Brief="Ideal Gas Constant",Unit='kJ/kmol/K',Default=8.31447);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	Tref		as temperature	(Brief="Zero enthalpy temperature reference",Default=288.70556);
+	Pref		as pressure		(Brief="Zero enthalpy pressure reference",DisplayUnit='kPa',Default=1);
+	
+	VARIABLES
+out	Outlet		as drygas_stream;
+	
+	Qg_act		as positive		(Brief="Gas vol. flow rate at actual conditions",Unit='m^3/h',Default=1e4);
+	API			as positive		(Brief="Oil API",Default=30);
+	MMg			as molweight	(Brief="Gas molar mass",Default=20);
+	Kw			as positive		(Brief="Oil watson K-factor",Default=11.3);
+	
+	EQUATIONS
+	"Volumetric Flow Rate @T,P"
+	Qg_act = Outlet.Bg*Outlet.Qg;
+
+	"Oil API grade"
+	API = 141.5/Outlet.d60 - 131.5;
+
+	"Gas molar mass"
+	MMg = Outlet.dg * 29*'kg/kmol';
+
+	"Oil watson K-factor"
+	Kw * Outlet.d60 = (Outlet.Tbn/'degR')^(1/3);
+
+#	"Volatiled Oil/Gas Ratio - NASSAR et al."
+#	Outlet.Rv = 0.5*(1+tanh((Outlet.T/'degR'-459.67)/1e-6))*(4.7e-7*(Outlet.P/'psi')^2 - 1.4e-3*(Outlet.P/'psi') + 2.3)*
+#		exp(-3.7e-4*Outlet.dg*14.696)*exp(-460*Outlet.d60/(Outlet.T/'degR'-459.67))*Outlet.Ycg;
+
+#	"Volitiled Oil/Gas Ratio - EL-BANBI et al."
+#	1e3*Outlet.Rv/'bbl/ft^3' = 1.225537042*(Outlet.dg*rho_AIRstd)/'lb/ft^3' * 
+#		(1.07257e-4*(Outlet.P/'psi')^2 - 0.194226755*(Outlet.P/'psi') + 240.549909)/(Psat/'psi') *
+#		exp(8.32137351 * 1e3*Outlet.Ycg/'bbl/ft^3' * Tref/'degR'/((Outlet.d60*rho_H2Ostd)/'lb/ft^3' * Outlet.T/'degR' * Pref/'psi'));
+
+	"Volatiled Oil/Gas Ratio - TRICA & SANTOS"
+#	Outlet.Rv/'l/m^3' = (-1482.47 + 1751.75*Outlet.dg + 1058.168*Outlet.dg^2)*
+#		(Outlet.P/'psi')^(-0.187803)*exp(-5381.301*Outlet.d60/(Outlet.T/'degR'));
+	Outlet.Rv/'l/m^3' = (-1180.3 + 2170.793*Outlet.dg + 1153.42*Outlet.dg^2)*
+		(Outlet.P/'psi')^(-0.206009)*exp(-5085.453*Outlet.d60/(Outlet.T/'degR'));
+end
+
+Model drygas_sink
+	PARAMETERS
+	R			as positive		(Brief="Ideal Gas Constant",Unit='kJ/kmol/K',Default=8.31447);
+	rho_AIRstd	as dens_mass	(Brief="Air Density at std. cond.",Default=1.2938);
+	Tref		as temperature	(Brief="Zero enthalpy temperature reference",Default=288.70556);
+	Pref		as pressure		(Brief="Zero enthalpy pressure reference",DisplayUnit='kPa',Default=1);
+	
+	VARIABLES
+in	Inlet		as drygas_stream;
+	
+	Qg_act		as positive		(Brief="Gas vol. flow rate at actual conditions",Unit='m^3/h',Default=1e4);
+	API			as positive		(Brief="Oil API",Default=30);
+	MMg			as molweight	(Brief="Gas molar mass",Default=20);
+	Kw			as positive		(Brief="Oil watson K-factor",Default=11.3);
+	
+	EQUATIONS
+	"Volumetric Flow Rate @T,P"
+	Qg_act = Inlet.Bg*Inlet.Qg;
+
+	"Oil API grade"
+	API = 141.5/Inlet.d60 - 131.5;
+
+	"Gas molar mass"
+	MMg = Inlet.dg * 29*'kg/kmol';
+
+	"Oil watson K-factor"
+	Kw * Inlet.d60 = (Inlet.Tbn/'degR')^(1/3);
+end
+
+Model strW
+	ATTRIBUTES
+	Brief 	= "Basic variables for a liquid only water brine stream";
+
+	VARIABLES
+	Qw			as positive		(Brief="Water std. vol. flow rate",Unit='m^3/d',Default=1e4);
+	P        	as pressure    	(Brief="Pressure",DisplayUnit='kPa',Default=10);
+	T        	as temperature 	(Brief="Temperature",Default=300);	
+	ws			as fraction		(Brief="Water phase (brine) salt weitgh content",Default=0.2);
+	TOG			as positive		(Brief="Oil and Grease Content",Unit='ml/m^3',Default=100);
+	hW			as enth_mass	(Brief="Water phase (brine) specific enthalpy",Default=250);
+	rhoW		as dens_mass	(Brief="Water phase (brine) mass density",Default=1030);
+	rho_Wstd	as dens_mass	(Brief="Water phase (brine) mass density at std. cond.",Default=1005);
+	d60			as positive		(Brief="Emulsified Oil Specific Gravity at 60 °F/60 °F",Lower=1e-6,Default=0.8);
+	Tbn			as temperature	(Brief="Emulsified Oil Normal Boiling Point",Default=650);
+end
+
+Model water_stream as strW
+	ATTRIBUTES
+	Brief 	= "Basic variables for a liquid only water brine stream";
+
+	PARAMETERS
+	Tref		as temperature	(Brief="Referente temperature for std. cond.",Default=288.70556);
+
+	VARIABLES
+	Bw			as positive		(Brief="Water phase (brine) Formation Volume Factor",Default= 0.95);
+	DVWT		as Real			(Brief="Water (brine) phase specific volume temperature effect",Default=0);
+	DVWP		as Real			(Brief="Water (brine) phase specific volume pressure effect",Default=0);
+	IDVWT		as Real			(Brief="Integral term of water phase specific volume temperature effect",Default=30);
+	IDVWTSQ		as Real			(Brief="Integral of the IDVWT square",Default=150);
+
+	EQUATIONS
+	"Water specific enthalpy"
+	hW/'kJ/kg'*'K/degR' = 
+		(4.18 - ws*(rho_Wstd/'kg/m^3')/(1+DVWP)*(4.396e-3 - 4.8e-6*ws*(rho_Wstd/'kg/m^3')/(1+DVWP)))*((T-Tref)/'degR')
+		- ws*(rho_Wstd/'kg/m^3')/(1+DVWP)*(4.396e-3 - 2*4.8e-6*ws*(rho_Wstd/'kg/m^3')/(1+DVWP))*IDVWT
+		+ 4.8e-6*(ws*(rho_Wstd/'kg/m^3')/(1+DVWP))^2*IDVWTSQ;
+
+	"Water phase (brine) mass density"
+	rhoW = Bw * rho_Wstd;
+
+	"Water phase formation volume factor"
+	Bw = (1+DVWP)/(1+DVWT);
+
+	"Water phase (brine) mass density at std. cond."
+	rho_Wstd/'lb/ft^3' = 62.638 + 0.438603*ws + 1.60074e-3*ws^2;
+
+	"Water (brine) phase specific volume temperature effect"
+	DVWT = -1.0001e-2 + 1.33391e-4*(T/'degR'-459.67) + 5.50654e-7*(T/'degR'-459.67)^2;
+
+	"Water (brine) phase specific volume pressure effect"
+	DVWP = -(3.58922e-7 + 1.95301e-9*(T/'degR'-459.67))*(P/'psi')
+		-(2.25341e-10 + 1.72834e-13*(T/'degR'-459.67))*(P/'psi')^2;
+
+	"Integral term of water phase specific volume temperature effect"
+	IDVWT = -1.0001e-2*((T-Tref)/'degR')
+		+ 1.33391e-4/2*((T/'degR')^2-(Tref/'degR')^2)
+		+ 5.50654e-7/3*((T/'degR')^3-(Tref/'degR')^3);
+	
+	"Integral of IDVWT square"
+	IDVWTSQ = 1.0001^2e-4*((T-Tref)/'degR')
+		- 1.33391e-6*((T/'degR')^2-(Tref/'degR')^2)
+		+ 2.25966e-9*((T/'degR')^3-(Tref/'degR')^3)
+		+ 3.67261e-11*((T/'degR')^4-(Tref/'degR')^4)
+		+ 6.06440e-14*((T/'degR')^5-(Tref/'degR')^5);
+end
+
+Model water_source
+	PARAMETERS
+	rho_H2Ostd	as dens_mass	(Brief="Pure water density at std. cond.",Default=999.054);
+	R			as positive		(Brief="Ideal Gas Constant",Unit='kJ/kmol/K',Default=8.31447);
+	Tref		as temperature	(Brief="Zero enthalpy temperature reference",Default=288.70556);
+	
+	VARIABLES
+out	Outlet		as water_stream;
+
+	Cws			as positive		(Brief="Water phase (brine) salt mass concentration",Unit='g/l',Default=200);
+#	Bw			as positive		(Brief="Water phase (brine) Formation Volume Factor",Default= 0.95);
+#	rho_Wstd	as dens_mass	(Brief="Water phase (brine) mass density at std. cond.",Default=1005);
+#	DVWT		as Real			(Brief="Water (brine) phase specific volume temperature effect",Default=0);
+#	DVWP		as Real			(Brief="Water (brine) phase specific volume pressure effect",Default=0);
+#	IDVWT		as Real			(Brief="Integral term of water phase specific volume temperature effect",Default=30);
+#	IDVWTSQ		as Real			(Brief="Integral of the IDVWT square",Default=150);	
+
+	EQUATIONS	
+	"Water phase (brine) salt mass concentration"
+	Cws*(1-Outlet.ws) = rho_H2Ostd*Outlet.ws;
+
+#	"Water specific enthalpy"
+#	Outlet.hW/'kJ/kg'*'K/degR' = 
+#		(4.18 - Outlet.ws*(rho_Wstd/'kg/m^3')/(1+DVWP)*(4.396e-3 - 4.8e-6*Outlet.ws*(rho_Wstd/'kg/m^3')/(1+DVWP)))*((Outlet.T-Tref)/'degR')
+#		- Outlet.ws*(rho_Wstd/'kg/m^3')/(1+DVWP)*(4.396e-3 - 2*4.8e-6*Outlet.ws*(rho_Wstd/'kg/m^3')/(1+DVWP))*IDVWT
+#		+ 4.8e-6*(Outlet.ws*(rho_Wstd/'kg/m^3')/(1+DVWP))^2*IDVWTSQ;
+
+#	"Water phase (brine) mass density @T,P"
+#	Outlet.rhoW * Bw = rho_Wstd;
+
+#	"Water phase formation volume factor"
+#	Bw = (1+DVWP)/(1+DVWT);
+
+#	"Water phase (brine) mass density at std. cond."
+#	rho_Wstd/'lb/ft^3' = 62.638 + 0.438603*Outlet.ws + 1.60074e-3*Outlet.ws^2;
+
+#	"Water (brine) phase specific volume temperature effect"
+#	DVWT = -1.0001e-2 + 1.33391e-4*(Outlet.T/'degR'-459.67) + 5.50654e-7*(Outlet.T/'degR'-459.67)^2;
+
+#	"Water (brine) phase specific volume pressure effect"
+#	DVWP = -(3.58922e-7 + 1.95301e-9*(Outlet.T/'degR' - 459.67))*Outlet.P/'psi'
+#		-(2.25341e-10 + 1.72834e-13*(Outlet.T/'degR' - 459.67))*(Outlet.P/'psi')^2;
+
+#	"Integral term of water phase specific volume temperature effect"
+#	IDVWT = -1.0001e-2*((Outlet.T-Tref)/'degR')
+#		+ 1.33391e-4/2*((Outlet.T/'degR')^2-(Tref/'degR')^2)
+#		+ 5.50654e-7/3*((Outlet.T/'degR')^3-(Tref/'degR')^3);
+	
+#	"Integral of IDVWT square"
+#	IDVWTSQ = 1.0001^2e-4*((Outlet.T-Tref)/'degR')
+#		- 1.33391e-6*((Outlet.T/'degR')^2-(Tref/'degR')^2)
+#		+ 2.25966e-9*((Outlet.T/'degR')^3-(Tref/'degR')^3)
+#		+ 3.67261e-11*((Outlet.T/'degR')^4-(Tref/'degR')^4)
+#		+ 6.06440e-14*((Outlet.T/'degR')^5-(Tref/'degR')^5);
+end
+
+Model water_sink
+	PARAMETERS
+	rho_H2Ostd	as dens_mass	(Brief="Pure water density at std. cond.",Default=999.054);
+	R			as positive		(Brief="Ideal Gas Constant",Unit='kJ/kmol/K',Default=8.31447);
+	Tref		as temperature	(Brief="Zero enthalpy temperature reference",Default=288.70556);
+	
+	VARIABLES
+in	Inlet		as water_stream;
+
+	Cws			as positive		(Brief="Water phase (brine) salt mass concentration",Unit='g/l',Default=200);
+
+	EQUATIONS
+	"Water phase (brine) salt mass concentration"
+	Cws*(1-Inlet.ws) = rho_H2Ostd*Inlet.ws;
+end

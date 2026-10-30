@@ -14,7 +14,7 @@ tptr = 'sqtwolog'; % thresholding procedure
 sorh = 'h';  % hard or soft threshold option
 scal = 'mln'; % scale procedure
 Wav = 1;  % 1 - Wav; 2 -> ADE...
-adap='fixed'; % adaption on(thresholding wavelets) or off (fixed)
+adap='norm-based'; % adaption on(thresholding wavelets) or off (fixed)
  
 %************************************************** 
  nUt=1
